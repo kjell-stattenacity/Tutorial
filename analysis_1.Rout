@@ -1,0 +1,191 @@
+
+R version 4.3.1 (2023-06-16) -- "Beagle Scouts"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(tidymodels)
+── Attaching packages ────────────────────────────────────── tidymodels 1.1.0 ──
+✔ broom        1.0.5          ✔ recipes      1.0.8     
+✔ dials        1.2.0          ✔ rsample      1.2.0     
+✔ dplyr        1.1.2          ✔ tibble       3.2.1     
+✔ ggplot2      3.4.3          ✔ tidyr        1.3.0     
+✔ infer        1.0.4          ✔ tune         1.1.2     
+✔ modeldata    1.2.0          ✔ workflows    1.1.3     
+✔ parsnip      1.1.1.9000     ✔ workflowsets 1.0.1     
+✔ purrr        1.0.2          ✔ yardstick    1.2.0     
+── Conflicts ───────────────────────────────────────── tidymodels_conflicts() ──
+✖ purrr::discard() masks scales::discard()
+✖ dplyr::filter()  masks stats::filter()
+✖ dplyr::lag()     masks stats::lag()
+✖ recipes::step()  masks stats::step()
+• Use tidymodels_prefer() to resolve common conflicts.
+> library(plsmod)
+> library(rules)
+
+Attaching package: ‘rules’
+
+The following object is masked from ‘package:dials’:
+
+    max_rules
+
+> 
+> # We use parallel processing on unix via forking. This pacakge is not available 
+> # for windows but you can do something similar with the doParallel package
+> library(doMC)
+Loading required package: foreach
+
+Attaching package: ‘foreach’
+
+The following objects are masked from ‘package:purrr’:
+
+    accumulate, when
+
+Loading required package: iterators
+Loading required package: parallel
+> 
+> # ------------------------------------------------------------------------------
+> # Set some options
+> 
+> tidymodels_prefer()
+> theme_set(theme_bw())
+> options(pillar.advice = FALSE, pillar.min_title_chars = Inf)
+> registerDoMC(cores = parallel::detectCores())
+> 
+> # ------------------------------------------------------------------------------
+> # Load all processed data configurations
+> 
+> load("RData/processed_data.RData")
+> load("RData/data_wide.RData")
+> 
+> 
+> # ------------------------------------------------------------------------------
+> # Analysis of pre-processor 1: diffs = 1, poly = 2, window = 15
+> 
+> preproc_1 <- tibble(differentiation_order = 1, polynomial_order = 2, window_size = 15)
+> 
+> data_1 <- 
++   processed_data %>% 
++   inner_join(preproc_1, by = c("differentiation_order", "polynomial_order", "window_size")) %>% 
++   select(-differentiation_order, -polynomial_order, -window_size)
+> 
+> set.seed(910)
+> split_1 <- initial_split(data_1, strata = concentration, prop = 0.77)
+Warning message:
+The number of observations in each quantile is below the recommended threshold of 20.
+• Stratification will use 3 breaks instead. 
+> train_1 <- training(split_1)
+> test_1  <- testing(split_1)
+> 
+> set.seed(522)
+> folds_1 <- vfold_cv(train_1, v = 10, repeats = 10)
+> 
+> base_rec_1 <- 
++   recipe(concentration ~ ., data = train_1) %>% 
++   # For some larger values of window_size, there are columns with all missing
++   # predictor values; let's remove those by determining that they have a single
++   # unique value
++   step_zv(all_predictors()) %>% 
++   # We'll keep the sample ID in the data but not treat it as a predictor
++   update_role(sample_id, new_role = "sample_id")
+> 
+> # ------------------------------------------------------------------------------
+> # Setup some options
+> 
+> # Save the hold-out predictions
+> grid_ctrl <- control_grid(save_pred = TRUE, parallel_over = "everything")
+> bayes_ctrl <- control_bayes(save_pred = TRUE, no_improve = Inf)
+> 
+> # ------------------------------------------------------------------------------
+> # Partial least squares analysis
+> 
+> # Add centering and scaling befor PLS
+> norm_rec_1 <- 
++   base_rec_1 %>% 
++   step_normalize(starts_with("x"))
+> 
+> pls_spec <- pls(num_comp = tune()) %>% set_mode("regression")
+> 
+> pls_wflow_1 <- 
++   workflow() %>% 
++   add_recipe(norm_rec_1) %>% 
++   add_model(pls_spec)
+> 
+> pls_tune_1 <-
++   tune_grid(pls_wflow_1,
++             resamples = folds_1, 
++             grid = tibble(num_comp = 1:25),
++             control = grid_ctrl)
+> 
+> pls_metrics_1 <- 
++   collect_metrics(pls_tune_1) %>% 
++   cbind(preproc_1) %>% 
++   as_tibble()
+> 
+> pls_pred_1 <- 
++   collect_predictions(pls_tune_1, summarize = TRUE) %>% 
++   cbind(preproc_1) %>% 
++   as_tibble()
+> 
+> # ------------------------------------------------------------------------------
+> # Random forest analysis
+> 
+> rf_spec <- 
++   rand_forest(mtry = tune(), trees = 1000) %>%
++   set_mode("regression")
+> 
+> # For random forest, the range of mtry depends on the number of columns and that
+> # number will change over different preprocessing values. Here we figure out the
+> # number of predictors, make a grid, and also convert mtry to a proportion that
+> # cna be used for plotting later. 
+> num_predictors_1 <- sum(grepl("^x", names(train_1)))
+> mtry_obj_1 <- mtry(c(1, num_predictors_1))
+> mtry_vals_1 <- unique(value_seq(mtry_obj_1, 25))
+> mtry_prop_1 <- tibble(mtry = mtry_vals_1, prop = mtry_vals_1 / num_predictors_1)
+> 
+> set.seed(382)
+> rf_tune_1 <-
++   rf_spec %>% 
++   tune_grid(base_rec_1,
++             resamples = folds_1, 
++             grid = tibble(mtry = mtry_vals_1),
++             control = grid_ctrl)
+> 
+> rf_metrics_1 <- 
++   collect_metrics(rf_tune_1) %>% 
++   cbind(preproc_1) %>% 
++   as_tibble() %>% 
++   full_join(mtry_prop_1, by = "mtry")
+> 
+> rf_pred_1 <- 
++   collect_predictions(rf_tune_1, summarize = TRUE) %>% 
++   cbind(preproc_1) %>% 
++   as_tibble() %>% 
++   full_join(mtry_prop_1, by = "mtry")
+> 
+> 
+> # ------------------------------------------------------------------------------
+> # Cubist analysis
+> 
+> cubist_spec <- cubist_rules(committees = tune(), neighbors = tune())
+> 
+> set.seed(382)
+> cb_tune_1 <-
++   cubist_spec %>% 
++   tune_grid(base_rec_1,
++             resamples = folds_1, 
++             grid = 25,
++             control = grid_ctrl)

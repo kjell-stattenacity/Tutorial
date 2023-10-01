@@ -35,7 +35,7 @@ train_4 <- training(split_4)
 test_4  <- testing(split_4)
 
 set.seed(522)
-folds_4 <- vfold_cv(train_4, v = 10, repeats = 5)
+folds_4 <- vfold_cv(train_4, v = 10, repeats = 10)
 
 base_rec_4 <- 
   recipe(concentration ~ ., data = train_4) %>% 
@@ -53,7 +53,7 @@ grid_ctrl <-
   control_grid(save_pred = TRUE,  # Save the hold-out predictions
                parallel_over = "everything")
 
-bayes_ctrl <- control_bayes(save_pred = TRUE)
+bayes_ctrl <- control_bayes(save_pred = TRUE, no_improve = Inf)
 
 # ------------------------------------------------------------------------------
 # Partial least squares analysis
@@ -72,7 +72,7 @@ pls_wflow_4 <-
 pls_tune_4 <-
   tune_grid(pls_wflow_4,
             resamples = folds_4, 
-            grid = tibble(num_comp = 1:15),
+            grid = tibble(num_comp = 1:25),
             control = grid_ctrl)
 
 pls_metrics_4 <- 
@@ -94,7 +94,7 @@ rf_spec <-
 
 num_predictors_4 <- sum(grepl("^x", names(train_4)))
 mtry_obj_4 <- mtry(c(2, num_predictors_4))
-mtry_vals_4 <- value_seq(mtry_obj_4, 15)
+mtry_vals_4 <- unique(value_seq(mtry_obj_4, 25))
 mtry_prop_4 <- tibble(mtry = mtry_vals_4, prop = mtry_vals_4 / num_predictors_4)
 
 set.seed(382)
@@ -128,7 +128,7 @@ cb_tune_4 <-
   cubist_spec %>% 
   tune_grid(base_rec_4,
             resamples = folds_4, 
-            grid = 15,
+            grid = 25,
             control = grid_ctrl)
 
 cb_metrics_4 <- 
@@ -159,7 +159,7 @@ svm_init_4 <-
   svm_spec %>% 
   tune_grid(base_rec_4,
             resamples = folds_4, 
-            grid = 5,
+            grid = 10,
             control = grid_ctrl)
 
 set.seed(382)
@@ -167,7 +167,7 @@ svm_tune_4 <-
   svm_spec %>% 
   tune_bayes(base_rec_4,
              resamples = folds_4, 
-             iter = 10,
+             iter = 15,
              initial = svm_init_4,
              control = bayes_ctrl)
 
