@@ -1,0 +1,434 @@
+
+R version 4.3.1 (2023-06-16) -- "Beagle Scouts"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # The analysis_#.R files have roughly the same format. To see code comments, 
+> # take a look at analysis_1.R
+> library(tidymodels)
+── Attaching packages ────────────────────────────────────── tidymodels 1.1.0 ──
+✔ broom        1.0.5          ✔ recipes      1.0.8     
+✔ dials        1.2.0          ✔ rsample      1.2.0     
+✔ dplyr        1.1.2          ✔ tibble       3.2.1     
+✔ ggplot2      3.4.3          ✔ tidyr        1.3.0     
+✔ infer        1.0.4          ✔ tune         1.1.2     
+✔ modeldata    1.2.0          ✔ workflows    1.1.3     
+✔ parsnip      1.1.1.9000     ✔ workflowsets 1.0.1     
+✔ purrr        1.0.2          ✔ yardstick    1.2.0     
+── Conflicts ───────────────────────────────────────── tidymodels_conflicts() ──
+✖ purrr::discard() masks scales::discard()
+✖ dplyr::filter()  masks stats::filter()
+✖ dplyr::lag()     masks stats::lag()
+✖ recipes::step()  masks stats::step()
+• Learn how to get started at https://www.tidymodels.org/start/
+> library(plsmod)
+> library(rules)
+
+Attaching package: ‘rules’
+
+The following object is masked from ‘package:dials’:
+
+    max_rules
+
+> library(doMC)
+Loading required package: foreach
+
+Attaching package: ‘foreach’
+
+The following objects are masked from ‘package:purrr’:
+
+    accumulate, when
+
+Loading required package: iterators
+Loading required package: parallel
+> 
+> # ------------------------------------------------------------------------------
+> # Set some options
+> 
+> tidymodels_prefer()
+> theme_set(theme_bw())
+> options(pillar.advice = FALSE, pillar.min_title_chars = Inf)
+> registerDoMC(cores = parallel::detectCores())
+> 
+> # ------------------------------------------------------------------------------
+> # Load all processed data configurations
+> 
+> load("RData/processed_data.RData")
+> load("RData/data_wide.RData")
+> 
+> # ------------------------------------------------------------------------------
+> # Analysis of pre-processor 4: diffs = 1, poly = 2, window = 49
+> 
+> preproc_4 <- tibble(differentiation_order = 1, polynomial_order = 2, window_size = 49)
+> 
+> data_4 <- 
++   processed_data %>% 
++   inner_join(preproc_4, by = c("differentiation_order", "polynomial_order", "window_size")) %>% 
++   select(-differentiation_order, -polynomial_order, -window_size)
+> 
+> set.seed(910)
+> split_4 <- initial_split(data_4, strata = concentration, prop = 0.77)
+Warning message:
+The number of observations in each quantile is below the recommended threshold of 20.
+• Stratification will use 3 breaks instead. 
+> train_4 <- training(split_4)
+> test_4  <- testing(split_4)
+> 
+> set.seed(522)
+> folds_4 <- vfold_cv(train_4, v = 10, repeats = 5)
+> 
+> base_rec_4 <- 
++   recipe(concentration ~ ., data = train_4) %>% 
++   # For some larger values of window_size, there are columns with all missing
++   # predictor values; let's remove those by determining that they have a single
++   # unique value
++   step_zv(all_predictors()) %>% 
++   # We'll keep the sample ID in the data but not treat it as a predictor
++   update_role(sample_id, new_role = "sample_id")
+> 
+> # ------------------------------------------------------------------------------
+> # Setup some options
+> 
+> grid_ctrl <- 
++   control_grid(save_pred = TRUE,  # Save the hold-out predictions
++                parallel_over = "everything")
+> 
+> bayes_ctrl <- control_bayes(save_pred = TRUE)
+> 
+> # ------------------------------------------------------------------------------
+> # Partial least squares analysis
+> 
+> norm_rec_4 <- 
++   base_rec_4 %>% 
++   step_normalize(starts_with("x"))
+> 
+> pls_spec <- pls(num_comp = tune()) %>% set_mode("regression")
+> 
+> pls_wflow_4 <- 
++   workflow() %>% 
++   add_recipe(norm_rec_4) %>% 
++   add_model(pls_spec)
+> 
+> pls_tune_4 <-
++   tune_grid(pls_wflow_4,
++             resamples = folds_4, 
++             grid = tibble(num_comp = 1:15),
++             control = grid_ctrl)
+> 
+> pls_metrics_4 <- 
++   collect_metrics(pls_tune_4) %>% 
++   cbind(preproc_4) %>% 
++   as_tibble()
+> 
+> pls_pred_4 <- 
++   collect_predictions(pls_tune_4, summarize = TRUE) %>% 
++   cbind(preproc_4) %>% 
++   as_tibble()
+> 
+> # ------------------------------------------------------------------------------
+> # Random forest analysis
+> 
+> rf_spec <- 
++   rand_forest(mtry = tune(), trees = 1000) %>%
++   set_mode("regression")
+> 
+> num_predictors_4 <- sum(grepl("^x", names(train_4)))
+> mtry_obj_4 <- mtry(c(2, num_predictors_4))
+> mtry_vals_4 <- value_seq(mtry_obj_4, 15)
+> mtry_prop_4 <- tibble(mtry = mtry_vals_4, prop = mtry_vals_4 / num_predictors_4)
+> 
+> set.seed(382)
+> rf_tune_4 <-
++   rf_spec %>% 
++   tune_grid(base_rec_4,
++             resamples = folds_4, 
++             grid = tibble(mtry = mtry_vals_4),
++             control = grid_ctrl)
+! Fold01, Repeat1: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold02, Repeat1: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold03, Repeat1: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold04, Repeat1: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold05, Repeat1: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold06, Repeat1: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold07, Repeat1: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold08, Repeat1: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold09, Repeat1: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold10, Repeat1: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold01, Repeat2: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold02, Repeat2: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold03, Repeat2: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold04, Repeat2: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold05, Repeat2: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold06, Repeat2: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold07, Repeat2: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold08, Repeat2: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold09, Repeat2: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold10, Repeat2: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold01, Repeat3: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold02, Repeat3: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold03, Repeat3: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold04, Repeat3: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold05, Repeat3: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold06, Repeat3: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold07, Repeat3: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold08, Repeat3: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold09, Repeat3: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold10, Repeat3: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold01, Repeat4: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold02, Repeat4: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold03, Repeat4: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold04, Repeat4: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold05, Repeat4: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold06, Repeat4: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold07, Repeat4: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold08, Repeat4: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold09, Repeat4: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold10, Repeat4: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold01, Repeat5: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold02, Repeat5: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold03, Repeat5: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold04, Repeat5: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold05, Repeat5: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold06, Repeat5: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold07, Repeat5: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold08, Repeat5: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold09, Repeat5: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+! Fold10, Repeat5: preprocessor 1/1, model 15/15: 3087 columns were requested but there were 3053 predictors in the data. ...
+> 
+> rf_metrics_4 <- 
++   collect_metrics(rf_tune_4) %>% 
++   cbind(preproc_4) %>% 
++   as_tibble() %>% 
++   full_join(mtry_prop_4, by = "mtry")
+> 
+> rf_pred_4 <- 
++   collect_predictions(rf_tune_4, summarize = TRUE) %>% 
++   cbind(preproc_4) %>% 
++   as_tibble() %>% 
++   full_join(mtry_prop_4, by = "mtry")
+> 
+> 
+> # ------------------------------------------------------------------------------
+> # Cubist analysis
+> 
+> cubist_spec <- cubist_rules(committees = tune(), neighbors = tune())
+> 
+> set.seed(382)
+> cb_tune_4 <-
++   cubist_spec %>% 
++   tune_grid(base_rec_4,
++             resamples = folds_4, 
++             grid = 15,
++             control = grid_ctrl)
+> 
+> cb_metrics_4 <- 
++   collect_metrics(cb_tune_4) %>% 
++   cbind(preproc_4) %>% 
++   as_tibble() 
+> 
+> cb_pred_4 <- 
++   collect_predictions(cb_tune_4, summarize = TRUE) %>% 
++   cbind(preproc_4) %>% 
++   as_tibble() 
+> 
+> 
+> # ------------------------------------------------------------------------------
+> # Support vector machine analysis
+> 
+> svm_spec <- 
++   svm_rbf(cost = tune(), rbf_sigma = tune()) %>% 
++   set_mode("regression")
+> 
+> svm_wflow_4 <- 
++   workflow() %>% 
++   add_recipe(norm_rec_4) %>% 
++   add_model(svm_spec)
+>   
+> set.seed(382)
+> svm_init_4 <-
++   svm_spec %>% 
++   tune_grid(base_rec_4,
++             resamples = folds_4, 
++             grid = 5,
++             control = grid_ctrl)
+! Fold01, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold02, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold03, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold08, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold09, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold10, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold02, Repeat2: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold07, Repeat2: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold08, Repeat2: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold09, Repeat2: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold01, Repeat3: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold05, Repeat3: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold04, Repeat4: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold07, Repeat4: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold09, Repeat4: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold06, Repeat5: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold07, Repeat5: internal: A correlation computation is required, but `estimate` is constant and ha...
+! Fold08, Repeat5: internal: A correlation computation is required, but `estimate` is constant and ha...
+> 
+> set.seed(382)
+> svm_tune_4 <-
++   svm_spec %>% 
++   tune_bayes(base_rec_4,
++              resamples = folds_4, 
++              iter = 10,
++              initial = svm_init_4,
++              control = bayes_ctrl)
+> 
+> svm_metrics_4 <- 
++   collect_metrics(svm_tune_4) %>% 
++   cbind(preproc_4) %>% 
++   as_tibble() 
+> 
+> svm_pred_4 <- 
++   collect_predictions(svm_tune_4, summarize = TRUE) %>% 
++   cbind(preproc_4) %>% 
++   as_tibble() 
+> 
+> # ------------------------------------------------------------------------------
+> # Collate results for this pre-processing configuration
+> 
+> res_4 <- ls(pattern = "(_metrics_4)|(_pred_4)")
+> save(list = res_4, file = "RData/preproc_results_4.RData", compress = TRUE)
+> 
+> # ------------------------------------------------------------------------------
+> 
+> sessioninfo::session_info()
+─ Session info ───────────────────────────────────────────────────────────────
+ setting  value
+ version  R version 4.3.1 (2023-06-16)
+ os       macOS Ventura 13.5.2
+ system   aarch64, darwin20
+ ui       X11
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       America/New_York
+ date     2023-09-30
+ pandoc   2.17.1.1 @ /opt/homebrew/bin/pandoc
+
+─ Packages ───────────────────────────────────────────────────────────────────
+ package      * version    date (UTC) lib source
+ backports      1.4.1      2021-12-13 [1] CRAN (R 4.3.0)
+ BiocParallel   1.34.2     2023-05-28 [1] Bioconductor
+ broom        * 1.0.5      2023-06-09 [1] CRAN (R 4.3.0)
+ cachem         1.0.8      2023-05-01 [1] CRAN (R 4.3.0)
+ class          7.3-22     2023-05-03 [1] CRAN (R 4.3.1)
+ cli            3.6.1      2023-03-23 [1] CRAN (R 4.3.0)
+ codetools      0.2-19     2023-02-01 [1] CRAN (R 4.3.1)
+ colorspace     2.1-0      2023-01-23 [1] CRAN (R 4.3.0)
+ conflicted     1.2.0      2023-02-01 [1] CRAN (R 4.3.0)
+ corpcor        1.6.10     2021-09-16 [1] CRAN (R 4.3.0)
+ Cubist       * 0.4.2.1    2023-03-09 [1] CRAN (R 4.3.0)
+ data.table     1.14.8     2023-02-17 [1] CRAN (R 4.3.0)
+ dials        * 1.2.0      2023-04-03 [1] CRAN (R 4.3.0)
+ DiceDesign     1.9        2021-02-13 [1] CRAN (R 4.3.0)
+ digest         0.6.33     2023-07-07 [1] CRAN (R 4.3.0)
+ doMC         * 1.3.8      2022-02-05 [1] CRAN (R 4.3.0)
+ dplyr        * 1.1.2      2023-04-20 [1] CRAN (R 4.3.0)
+ ellipse        0.5.0      2023-07-20 [1] CRAN (R 4.3.0)
+ ellipsis       0.3.2      2021-04-29 [1] CRAN (R 4.3.0)
+ fansi          1.0.4      2023-01-22 [1] CRAN (R 4.3.0)
+ fastmap        1.1.1      2023-02-24 [1] CRAN (R 4.3.0)
+ foreach      * 1.5.2      2022-02-02 [1] CRAN (R 4.3.0)
+ furrr          0.3.1      2022-08-15 [1] CRAN (R 4.3.0)
+ future         1.33.0     2023-07-01 [1] CRAN (R 4.3.0)
+ future.apply   1.11.0     2023-05-21 [1] CRAN (R 4.3.0)
+ generics       0.1.3      2022-07-05 [1] CRAN (R 4.3.0)
+ ggplot2      * 3.4.3      2023-08-14 [1] CRAN (R 4.3.0)
+ ggrepel        0.9.3      2023-02-03 [1] CRAN (R 4.3.0)
+ globals        0.16.2     2022-11-21 [1] CRAN (R 4.3.0)
+ glue           1.6.2      2022-02-24 [1] CRAN (R 4.3.0)
+ gower          1.0.1      2022-12-22 [1] CRAN (R 4.3.0)
+ GPfit          1.0-8      2019-02-08 [1] CRAN (R 4.3.0)
+ gridExtra      2.3        2017-09-09 [1] CRAN (R 4.3.0)
+ gtable         0.3.3      2023-03-21 [1] CRAN (R 4.3.0)
+ hardhat        1.3.0      2023-03-30 [1] CRAN (R 4.3.0)
+ igraph         1.5.0      2023-06-16 [1] CRAN (R 4.3.0)
+ infer        * 1.0.4      2022-12-02 [1] CRAN (R 4.3.0)
+ ipred          0.9-14     2023-03-09 [1] CRAN (R 4.3.0)
+ iterators    * 1.0.14     2022-02-05 [1] CRAN (R 4.3.0)
+ kernlab      * 0.9-32     2023-01-31 [1] CRAN (R 4.3.0)
+ lattice      * 0.21-8     2023-04-05 [1] CRAN (R 4.3.1)
+ lava           1.7.2.1    2023-02-27 [1] CRAN (R 4.3.0)
+ lhs            1.1.6      2022-12-17 [1] CRAN (R 4.3.0)
+ lifecycle      1.0.3      2022-10-07 [1] CRAN (R 4.3.0)
+ listenv        0.9.0      2022-12-16 [1] CRAN (R 4.3.0)
+ lubridate      1.9.2      2023-02-10 [1] CRAN (R 4.3.0)
+ magrittr       2.0.3      2022-03-30 [1] CRAN (R 4.3.0)
+ MASS         * 7.3-60     2023-05-04 [1] CRAN (R 4.3.1)
+ Matrix         1.6-0      2023-07-08 [1] CRAN (R 4.3.0)
+ matrixStats    1.0.0      2023-06-02 [1] CRAN (R 4.3.0)
+ memoise        2.0.1      2021-11-26 [1] CRAN (R 4.3.0)
+ mixOmics     * 6.24.0     2023-05-08 [1] Bioconduc~
+ modeldata    * 1.2.0      2023-08-09 [1] CRAN (R 4.3.0)
+ munsell        0.5.0      2018-06-12 [1] CRAN (R 4.3.0)
+ nnet           7.3-19     2023-05-03 [1] CRAN (R 4.3.1)
+ parallelly     1.36.0     2023-05-26 [1] CRAN (R 4.3.0)
+ parsnip      * 1.1.1.9000 2023-08-24 [1] Github (tidymodels/parsnip@907d216)
+ pillar         1.9.0      2023-03-22 [1] CRAN (R 4.3.0)
+ pkgconfig      2.0.3      2019-09-22 [1] CRAN (R 4.3.0)
+ plsmod       * 1.0.0      2022-09-06 [1] CRAN (R 4.3.0)
+ plyr           1.8.8      2022-11-11 [1] CRAN (R 4.3.0)
+ prodlim        2023.03.31 2023-04-02 [1] CRAN (R 4.3.0)
+ purrr        * 1.0.2      2023-08-10 [1] CRAN (R 4.3.0)
+ R6             2.5.1      2021-08-19 [1] CRAN (R 4.3.0)
+ ranger       * 0.15.1     2023-04-03 [1] CRAN (R 4.3.0)
+ rARPACK        0.11-0     2016-03-10 [1] CRAN (R 4.3.0)
+ RColorBrewer   1.1-3      2022-04-03 [1] CRAN (R 4.3.0)
+ Rcpp           1.0.11     2023-07-06 [1] CRAN (R 4.3.0)
+ recipes      * 1.0.8      2023-08-25 [1] CRAN (R 4.3.0)
+ reshape2       1.4.4      2020-04-09 [1] CRAN (R 4.3.0)
+ rlang          1.1.1      2023-04-28 [1] CRAN (R 4.3.0)
+ rpart          4.1.19     2022-10-21 [1] CRAN (R 4.3.1)
+ rsample      * 1.2.0      2023-08-23 [1] CRAN (R 4.3.1)
+ RSpectra       0.16-1     2022-04-24 [1] CRAN (R 4.3.0)
+ rstudioapi     0.15.0     2023-07-07 [1] CRAN (R 4.3.0)
+ rules        * 1.0.2      2023-03-08 [1] CRAN (R 4.3.0)
+ scales       * 1.2.1      2022-08-20 [1] CRAN (R 4.3.0)
+ sessioninfo    1.2.2      2021-12-06 [1] CRAN (R 4.3.0)
+ stringi        1.7.12     2023-01-11 [1] CRAN (R 4.3.0)
+ stringr        1.5.0      2022-12-02 [1] CRAN (R 4.3.0)
+ survival       3.5-5      2023-03-12 [1] CRAN (R 4.3.1)
+ tibble       * 3.2.1      2023-03-20 [1] CRAN (R 4.3.0)
+ tidymodels   * 1.1.0      2023-05-01 [1] CRAN (R 4.3.0)
+ tidyr        * 1.3.0      2023-01-24 [1] CRAN (R 4.3.0)
+ tidyselect     1.2.0      2022-10-10 [1] CRAN (R 4.3.0)
+ timechange     0.2.0      2023-01-11 [1] CRAN (R 4.3.0)
+ timeDate       4022.108   2023-01-07 [1] CRAN (R 4.3.0)
+ tune         * 1.1.2      2023-08-23 [1] CRAN (R 4.3.1)
+ utf8           1.2.3      2023-01-31 [1] CRAN (R 4.3.0)
+ vctrs          0.6.3      2023-06-14 [1] CRAN (R 4.3.0)
+ withr          2.5.0      2022-03-03 [1] CRAN (R 4.3.0)
+ workflows    * 1.1.3      2023-02-22 [1] CRAN (R 4.3.0)
+ workflowsets * 1.0.1      2023-04-06 [1] CRAN (R 4.3.0)
+ yardstick    * 1.2.0      2023-04-21 [1] CRAN (R 4.3.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library
+
+──────────────────────────────────────────────────────────────────────────────
+> 
+> if (!interactive()) {
++   q("no")
++ }
+> proc.time()
+     user    system   elapsed 
+10209.349   872.665  1391.175 
