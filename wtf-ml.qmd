@@ -47,11 +47,13 @@ load("RData/processed_data.RData")
 load("RData/all_results.RData")
 ```
 
+(This is a preprint of an article submitted to a _Pharmaceutical Statistics_ special nonclinical tutorial edition)
+
 ## Introduction
 
 It feels like machine learning is everywhere. Within data analysis circles, almost every discussion involves how artificial intelligence and machine learning can change our lives. ChatGPT has turned up the noise in the conversation, and many people believe it should be applied. 
 
-This tutorial discusses more realistic approaches to using machine learning in preclinical applications, specifically Chemistry, Manufacturing, and Control (CMC) applications. The structure takes a relatively ordinary experimental problem (predicting drug concentration using spectroscopy) to frame a discussion about what machine learning can and can't do. The idea is that most machine learning tutorials are not holistic examinations of how it actually works. While describing our analysis, we will highlight "what they forgot to tell you" about these tools. 
+This tutorial discusses more realistic approaches to using machine learning in preclinical applications, specifically Chemistry, Manufacturing, and Control (CMC) applications. The structure takes a relatively ordinary experimental problem (predicting drug concentration using spectroscopy) to frame a discussion about what machine learning can, can't do, and probably should do. The idea is that most machine learning training materials are not holistic examinations of how the process actually works. While describing our analysis, we will highlight "what they forgot to tell you" about these tools. 
 
 As an example, it might make sense to discuss what the term "machine learning" actually means and under what circumstances it is appropriate. Historically, it usually connotes a specific type of black-block model such as a neural network or support vector machine. This leads us to our our first _what they forgot_ (WTF):
 
@@ -353,6 +355,10 @@ processed_data %>%
 
 @fig-lagged-spectra-across-sets displays the correlation across the first 1000 wavenumbers for the original data as well as each of the selected Savitzky-Golay transformations. The effect of differentiation and window size on the correlation across the transformed intensities is clear.  When comparing first-order differentiation to second-order differentiation, second-order differentiation more rapidly reduces correlation among close wavenumbers up to about the nearest 100 wavenumbers.  Increasing the smoothing window also helps smooth the correlation profiles but does not further reduce correlation. We will examine the impact of each of these different smoothing parameter selections on the model performance in the following sections.
 
+
+PCA plot on processed data
+
+
 ## Machine Learning Models {#sec-modeling}
 
 Over the past half-century, the number and types of models for relating a set of predictors to a response has rapidly grown.  Improvements in computational power and mathematical complexity have been the primary drivers of this increase.  Traditionally, model complexity is generally tied to the number of parameters of a model.  As the number of model parameters increases, so does the ability of a model to adapt and morph to the relationship between predictors and the response.  For example, the basic partial least squares model has one tuning parameter and is effective at finding a linear relationship between predictors and the response.  However, this method is ineffective at finding non-linear relationships.  In contrast, consider a simple single-layer, feed-forward neural network.  This model can easily have many more parameters than the number of predictors.  For the example data, the number of predictors already exceeds the number of samples.  Therefore, even the simplest of neural network models can overfit the available data without appropriate precautions.  
@@ -545,6 +551,21 @@ best_pred %>%
   facet_grid(Pre ~ Model) +
   labs(x = "Observed DP Concentration", y = "Predicted DP Concentration") 
 ```
+
+::: {.callout-important}
+## **WTF**
+
+It is a common situation when multiple tuning parameter combinations have approximately the same level of performance. Likewise, it is rare that a single type of model completely outclasses the others. 
+:::
+
+## Post-Modeling Activities
+
+::: {.callout-important}
+## **WTF**
+
+_Models_ do not drift; data can change over time, as can the population being predicted. Tools called applicability domain methods help measure how far (if at all) a new sample is from the original training set (i.e., extrapolation). These values can accompany a new sample prediction to help gauge how dodgy a new sample may be. 
+:::
+
 
 ## Conclusions
 
