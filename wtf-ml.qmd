@@ -419,7 +419,7 @@ For each tuning parameter combination, 10 repeats of 10-fold cross-validation ar
 Despite the literature, optimizing hyper-parameters using grid search is effective and can be very efficient using advanced (but easy to use) computational and statistical methods
 :::
 
-One computational tool for grid search is parallel processing. None of the 2,500 models estimated in the grid search depend on the other and, as such, can be executed simultaneously on different computer CPU cores. Software can seamlessly facilitate this and it is not uncommon to see 5-fold reductions in the computational time using this method. 
+One computational tool for grid search is parallel processing. None of the 1,250 models estimated in the grid search depend on the other and, as such, can be executed simultaneously on different computer CPU cores. Software can seamlessly facilitate this and it is not uncommon to see 5-fold reductions in the computational time using this method. 
 
 Also, there are statistical methods to evaluate 25 models without having to estimate all of them. For example, for some models, the most complex model can be fit, and results from sub-models can be derived at no extra cost. For example, if a Cubist model is created with an ensemble size of 50, we can get predictions from the same model for sizes 1 - 40 at no computational cost. Additionally, racing methods can conduct interim analyses during grid search and remove tuning parameter combinations that are unlikely to be chosen as the best results. 
 
