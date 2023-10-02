@@ -37,7 +37,7 @@ train_1 <- training(split_1)
 test_1  <- testing(split_1)
 
 set.seed(522)
-folds_1 <- vfold_cv(train_1, v = 10, repeats = 10)
+folds_1 <- vfold_cv(train_1, v = 10, repeats = 5)
 
 base_rec_1 <- 
   recipe(concentration ~ ., data = train_1) %>% 
@@ -96,8 +96,13 @@ rf_spec <-
 # For random forest, the range of mtry depends on the number of columns and that
 # number will change over different preprocessing values. Here we figure out the
 # number of predictors, make a grid, and also convert mtry to a proportion that
-# cna be used for plotting later. 
-num_predictors_1 <- sum(grepl("^x", names(train_1)))
+# can be used for plotting later. 
+# However, larger differentiation orders result in columns with all missing values.
+# For this reason, we prep the recipe on the training set and derive the number 
+# of predictors from the process version of the training set. 
+
+prepped_1 <- prep(base_rec_1) %>% bake(new_data = NULL)
+num_predictors_1 <- sum(grepl("^x", names(prepped_1)))
 mtry_obj_1 <- mtry(c(1, num_predictors_1))
 mtry_vals_1 <- unique(value_seq(mtry_obj_1, 25))
 mtry_prop_1 <- tibble(mtry = mtry_vals_1, prop = mtry_vals_1 / num_predictors_1)
@@ -191,11 +196,36 @@ svm_pred_1 <-
   as_tibble() 
 
 # ------------------------------------------------------------------------------
+# PCA components for diagnostic plots 
+
+rec_pca_1 <- 
+  norm_rec_1 %>% 
+  step_normalize(starts_with("x")) %>% 
+  step_pca(starts_with("x"), num_comp = 5, id = "pca") %>% 
+  prep()
+
+pca_data_1 <- 
+  rec_pca_1 %>% 
+  bake(new_data = NULL) %>% 
+  cbind(preproc_1) %>% 
+  as_tibble() 
+
+pca_var_1 <- 
+  rec_pca_1 %>% 
+  tidy(id = "pca", type = "variance") %>% 
+  filter(terms == "cumulative percent variance") %>% 
+  select(value, component) %>% 
+  cbind(preproc_1) %>% 
+  as_tibble() 
+
+# ------------------------------------------------------------------------------
 # Collate results for this pre-processing configuration
 
 res_1 <- ls(pattern = "(_metrics_1)|(_pred_1)")
 save(list = res_1, file = "RData/preproc_results_1.RData", compress = TRUE)
 
+res_pca_1 <- ls(pattern = "^pca_")
+save(list = res_pca_1, file = "RData/pca_results_1.RData", compress = TRUE)
 
 # ------------------------------------------------------------------------------
 

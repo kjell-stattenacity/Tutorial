@@ -35,7 +35,7 @@ train_2 <- training(split_2)
 test_2  <- testing(split_2)
 
 set.seed(522)
-folds_2 <- vfold_cv(train_2, v = 10, repeats = 10)
+folds_2 <- vfold_cv(train_2, v = 10, repeats = 5)
 
 base_rec_2 <- 
   recipe(concentration ~ ., data = train_2) %>% 
@@ -92,7 +92,8 @@ rf_spec <-
   rand_forest(mtry = tune(), trees = 1000) %>%
   set_mode("regression")
 
-num_predictors_2 <- sum(grepl("^x", names(train_2)))
+prepped_2 <- prep(base_rec_2) %>% bake(new_data = NULL)
+num_predictors_2 <- sum(grepl("^x", names(prepped_2)))
 mtry_obj_2 <- mtry(c(2, num_predictors_2))
 mtry_vals_2 <- unique(value_seq(mtry_obj_2, 25))
 mtry_prop_2 <- tibble(mtry = mtry_vals_2, prop = mtry_vals_2 / num_predictors_2)
@@ -182,11 +183,36 @@ svm_pred_2 <-
   as_tibble() 
 
 # ------------------------------------------------------------------------------
+# PCA components for diagnostic plots 
+
+rec_pca_2 <- 
+  norm_rec_2 %>% 
+  step_normalize(starts_with("x")) %>% 
+  step_pca(starts_with("x"), num_comp = 5, id = "pca") %>% 
+  prep()
+
+pca_data_2 <- 
+  rec_pca_2 %>% 
+  bake(new_data = NULL) %>% 
+  cbind(preproc_2) %>% 
+  as_tibble() 
+
+pca_var_2 <- 
+  rec_pca_2 %>% 
+  tidy(id = "pca", type = "variance") %>% 
+  filter(terms == "cumulative percent variance") %>% 
+  select(value, component) %>% 
+  cbind(preproc_2) %>% 
+  as_tibble() 
+
+# ------------------------------------------------------------------------------
 # Collate results for this pre-processing configuration
 
 res_2 <- ls(pattern = "(_metrics_2)|(_pred_2)")
 save(list = res_2, file = "RData/preproc_results_2.RData", compress = TRUE)
 
+res_pca_2 <- ls(pattern = "^pca_")
+save(list = res_pca_2, file = "RData/pca_results_2.RData", compress = TRUE)
 
 # ------------------------------------------------------------------------------
 
