@@ -383,13 +383,58 @@ An alternate tool called Bayesian optimization was used to optimize the support 
 
 ## Results
 
-First, let's examine the PLS and RF model results. Each optimized a single model parameter. 
+```{r}
+#| label: compute-best
+#| include: false
+
+models <- c( "Partial Least Squares", "Random Forest", "Cubist", "Support Vector Machine")
+preproc <- c("No Pre-Processing", "1, 2, 15", "2, 2, 15", "1, 2, 49", "2, 2, 49")
+
+best_pls <- 
+  all_pls_rmse %>% 
+  slice_min(mean, by = c(Pre)) %>% 
+  arrange(mean)
+
+best_rf <- 
+  all_rf_rmse %>% 
+  slice_min(mean, by = c(Pre)) %>% 
+  arrange(mean)
+
+svm_rmse <- 
+  all_metrics %>% 
+  filter(Model == "Support Vector Machine") %>% 
+  mutate(
+    num_iter = ifelse(grepl("Prep", .config), 0, gsub("Iter", "", .config)),
+    num_iter = as.numeric(num_iter)
+  ) %>% 
+  slice_min(RMSE, by = c(Pre, num_iter))
+
+best_configs <- 
+  all_metrics %>% 
+  slice_min(RMSE, by = c(Model, Pre)) %>% 
+  mutate(Pre = factor(Pre, levels = preproc))
+
+best_pred <- 
+  all_pred %>% 
+  inner_join(
+    best_configs %>% select(Model, Pre, .config),
+    by = c("Model", "Pre", ".config") 
+  ) %>% 
+  mutate(
+    Pre = factor(Pre, levels = preproc),
+    Model = factor(Model, levels = models),
+    .resid = concentration - .pred
+  )
+
+```
+
+First, let's examine the PLS and RF model results. Each optimized a single model parameter. @fig-pls-rf-tune-profiles (left) illustrates the tuning parameter profiles across the number of components that were evaluated for the original spectra as well as the different Savitzky-Golay pre-processed spectra.  RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed.  The model with the lowest RMSE uses the SG filter with parameterization of first order differentiation, second order polynomial, and a small window size (1, 2, 15), and `r best_pls$num_comp[best_pls$Pre == "1, 2, 15"]` components.
 
 ```{r}
 #| label: fig-pls-rf-tune-profiles
 #| echo: false
 #| warning: false
-#| fig-height: 5
+#| fig-height: 4
 #| fig-width: 7.5
 #| fig-cap: "The tuning parameter profiles for partial least squares and random forest."
 
@@ -418,9 +463,52 @@ rf_plot <-
 pls_plot + rf_plot + 
   plot_layout(guides = 'collect')  & 
   theme(legend.position = "top")
-
-
 ```
+
+@fig-pls-rf-tune-profiles (right) displays the tuning parameter profile for the RF model.  We can see from this figure that as the value of the $m_{try}$ is fairly irrelevant so long as very fewer predictors are randomly sampled.  Also, the predictor set with the best RMSE is the same as the set identified using PLS.  However, the optimal RF model (RMSE = `r format(min(best_rf$mean), digits = 3)`) performs poorly compared to the optimal PLS model (RMSE = `r format(min(best_pls$mean), digits = 3)`).  
+
+The svm search...
+
+The next step in the process is to select which predictor set, model, and tuning parameter settings are optimal for the data.  @fig-all-optimal-models displays the cross-validated RMSE values corresponding to each model's optimal tuning parameter settings.  There are several important findings that this figure reveals.  First, the SVM and RF models have improved predictive performance when the SG pre-processing is applied.  On the other hand, the PLS and Cubist models are not substantially improved with this pre-processing.  In fact, the performance can be made worse if second-order differentiation is applied.
+
+```{r}
+#| label: fig-all-optimal-models
+#| echo: false
+#| warning: false
+#| fig-height: 4
+#| fig-cap: "Cross-validation predictive performance using the optimal tuning parameter settings for each predictor set and model."
+
+best_configs %>% 
+  ggplot(aes(Pre, RMSE, col = Model, group = Model, pch = Model)) + 
+  geom_point(cex = 2) +
+  geom_line() + 
+  labs(x = "Preprocessing", y = "Best RMSE") + 
+  theme(legend.position = "top") + 
+  scale_color_brewer(palette = "Dark2")
+```
+
+Across the five pre-processing sets and four models, let's compare the the observed versus predicted values for the PLS, Cubist, and SVM models with the unprocessed and two variations of the SG pre-processed data (1, 2, 15 and 2, 2, 15).  @fig-obs-pred-cv-comparison highlights some interesting characteristics across the models and predictor sets.  First, we see that the SVM model cannot decipher the relationship between predictors and the response when the data is not pre-processed.  In fact, it is challenging for SVM models to find predictive signals when there are many correlated predictors in the data [REFS].  Next, one particular sample is challenging for the PLS model to fit when the predictors are not pre-processed or when there is some pre-processing (2, 2, 15).  For the Cubist model, this same sample is better predicted by the model with no pre-processing and less well predicted with either of the pre-processed data sets.  What this means is that the same pre-processing approach is rarely effective across all models.  Instead, many model types evaluated across a range of tuning parameters along with a variety of pre-processing conditions need to be evaluated in order to find the optimal model, 
+
+
+```{r}
+#| label: fig-obs-pred-cv-comparison
+#| echo: false
+#| warning: false
+#| fig-height: 7.5
+#| fig-width: 7.5
+#| fig-cap: "Comparison of observed versus hold-out predicted values from cross-validation for the optimal tuning parameter settings for three models and three pre-processing combinations.  One challenging sample to predict is highlighted in red."
+
+best_pred %>% 
+  ggplot(aes(concentration, .pred)) + 
+  geom_abline(col = "green") +
+  geom_point(alpha = 1 / 2) + 
+  facet_grid(Pre ~ Model) +
+  labs(x = "Observed DP Concentration", y = "Predicted DP Concentration") 
+```
+
+## Conclusions
+
+
 
 ## Software and Data
 
