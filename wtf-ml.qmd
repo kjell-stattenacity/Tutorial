@@ -10,6 +10,11 @@ format:
     code-fold: true
     classoption: fleqn
     code-link: true
+    fig-format: svg
+  pdf:
+    cap-location: bottom
+    fig-format: pdf
+    pdf-engine: pdflatex
 knitr:
   opts_chunk:
     cache.path: "_cache/"    
@@ -31,6 +36,11 @@ options(pillar.advice = FALSE, pillar.min_title_chars = Inf)
 
 # ------------------------------------------------------------------------------
 
+knitr::opts_chunk$set(fig.path = "figures/")
+
+
+# ------------------------------------------------------------------------------
+
 load("RData/data_long.RData")
 load("RData/data_wide.RData")
 load("RData/processed_data.RData")
@@ -45,14 +55,18 @@ This tutorial discusses more realistic approaches to using machine learning in p
 
 As an example, it might make sense to discuss what the term "machine learning" actually means and under what circumstances it is appropriate. Historically, it usually connotes a specific type of black-block model such as a neural network or support vector machine. This leads us to our our first _what they forgot_ (WTF):
 
-::: wtf
-**WTF #1**: The idea of a "machine learning model" is more defined by the project's goal than the type of model. 
+::: {.callout-important}
+## **WTF**
+
+The idea of a "machine learning model" is more defined by the project's goal than the type of model. 
 :::
 
 It is difficult to argue that ML models focus on making the most accurate prediction of a new sample based on historical data. From that point of view, it could be any sufficiently complex model that performs sufficiently well. For example, a linear regression could fit this definition by including appropriate interactions or nonlinear terms, such as spline basis expansions. However...
 
-::: wtf
-**WTF #2**: You probably don't need a complex black-box machine learning model. 
+::: {.callout-important}
+## **WTF**
+
+You probably don't need a complex black-box machine learning model. 
 :::
 
 Why not? First, not all problems are purely prediction problems. Most black-box models used for ML, such as neural networks or tree ensembles, are excellent at prediction but poor at almost anything else. We have seen applications where simple two-factor experimental data were analyzed using the random forest ensemble method instead of a simple ANOVA model. When it comes to judging what predictors are important to one another, many machine learning models are not very applicable. 
@@ -63,8 +77,10 @@ For some, there is a significant urge to fit complex ML models since they often 
 
 A disconnect occurs because most experimental data used in CMC applications are tabular (or can be made to be tabular). 
 
-::: wtf
-**WTF #3**: Unless you are analyzing images, it is exceedingly unlikely that a deep-learning model is your best option. 
+::: {.callout-important}
+## **WTF**
+
+Unless you are analyzing images, it is exceedingly unlikely that a deep-learning model is your best option. 
 :::
 
 There is considerable anecdotal evidence that highly complex neural networks may not perform well for reasonably sized tabular data sets. This is currently being examined more formally in the literature [@kadra2021regularization;@gorishniy2021revisiting;@Borisov2022;@SHWARTZZIV202284]. Experimental data in preclinical applications can often exhibit colinearity between predictors and data measured with error. For novel data sets, we often do not know which predictors have a relationship with the outcome, increasing the possibility that some irrelevant predictors will be used to fit the model. In general, neural networks do not thrive in these environments [@kuhn2013applied]. 
@@ -87,8 +103,10 @@ In the example outlined in this tutorial, several key input parameters were vari
 
 The first step in any modeling process is to understand the available data. 
 
-::: wtf
-**WTF #4**: the only way to be comfortable with your data is to never look at them.  
+::: {.callout-important}
+## **WTF**
+
+the only way to be comfortable with your data is to never look at them.  
 :::
 
 In this application, there is one sample from each of 60 bioreactors.  Raman spectroscopy has been applied to each sample, and the drug product concentration has been measured.  @fig-raman-spectra displays the original Raman spectra.  From this figure, we can see that there is an initial downward trend towards the middle of the wavenumbers, then an upward trend towards the higher wavenumbers.  The intensities are not randomly scattered.  Instead, there is a relationship across wavenumbers with intensity.  This relationship indicates that wavenumber intensities are correlated with each other.  In fact, the correlation between the majority of adjacent wavenumbers is greater than 0.99.  
@@ -160,8 +178,10 @@ ggplot(data_wide, aes(x = concentration)) +
 
 The primary objective of predictive modeling is to use the existing data to develop a model that predicts new samples as accurately as possible.  To achieve this objective, a process must be implemented that avoids overfitting to the existing data [@kuhn2013applied; @Hawkins2004p1].  An overfit model is one that accurately predicts the response for the data on which the model was trained but does not accurately predict new data.  To avoid overfitting, we must construct a model-building process that mimics the prediction process for new samples.  One way to do this would be to split the data into training and test sets.  A model could be constructed with the training set, then predictive performance could be evaluated with the test set. 
 
-::: wtf
-**WTF #5**: Always have an independent data set that can contradict what you think you may know. 
+::: {.callout-important}
+## **WTF**
+
+Always have an independent data set that can contradict what you think you may know. 
 :::
 
 However, most predictive models must be constructed using a variety of tuning parameter values.  The test set would then need to be evaluated multiple times to assess predictive performance.  When the test set is evaluated multiple times, we are essentially finding a model that fits the test set.  This process leads to overfitting, and the model performance cannot be trusted to evaluate the predictive performance on new samples accurately.  Therefore, a single training/test split will not be adequate for building predictive models.  Moreover, it is important to understand that the test set should only be used once to evaluate the final selected models.
@@ -177,7 +197,11 @@ Instead of a single training/test split, we need a process that can be used to e
 #| fig-align: center
 #| fig-cap: "Illustration of a general data usage scheme that incorporates resampling."
 
-knitr::include_graphics("premade/resampling.svg") 
+if (knitr::is_html_output()) {
+  knitr::include_graphics("premade/resampling.svg")   
+} else {
+  knitr::include_graphics("premade/resampling.pdf")   
+}
 ```
 
 The training data is split using resampling in the second layer of @fig-resampling.  Cross-validation could be used in this layer, where the data is split into $V$ folds.  For example, if 10-fold cross-validation were used in this layer, then the training data would be partitioned into 10 folds.  The analysis set for the first resample would contain 9 folds of the data, while the assessment set would contain 1 fold of the data.  A model would be constructed using the 9 folds and would evaluated using the hold-out fold.  To create the analysis set for the second resample, a different combination of 9-folds would be used to construct the model.  The model would then be evaluated on the fold that was not used in the modeling. For illustration, @fig-three-fold provides an illustration of 3-fold cross-validation (although $V = 10$ is a much better choice). 
@@ -189,7 +213,12 @@ The training data is split using resampling in the second layer of @fig-resampli
 #| fig-align: center
 #| fig-cap: "A diagram of how 3-fold cross-validation can be used with 30 data points."
 
-knitr::include_graphics("premade/three-CV.svg") 
+
+if (knitr::is_html_output()) {
+  knitr::include_graphics("premade/three-CV.svg")   
+} else {
+  knitr::include_graphics("premade/three-CV.pdf")   
+}
 ```
 
 For the example presented here, a stratified random approach will be used to split the data into a training (75%) and a test (25%) set.  The distribution of the response will be used as the stratification variable such that an equal proportion of samples will be randomly selected within each quartile of the distribution.  When training models, we will compare the performance of 10-fold cross-validation as well as repeated 10-fold cross-validation.
@@ -198,13 +227,16 @@ For the example presented here, a stratified random approach will be used to spl
 
 The predictors and response, in their original form, are usually not in the best form for enabling models to find an optimal predictive relationship.  The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors.  Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics.  However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present.  As a simple example, consider a predictor that has three categories: Low, Mid, and High.  The information, in this form, cannot be ingested by most models.  Instead, the information needs to be converted into either an ordinal-scaled predictor or two binary variables.  Missing data also wreaks havoc on predictive models because the models require non-missing information.  Therefore, appropriate pre-processing steps must be taken before model training.
 
-::: wtf
-**WTF #6**: The stereotypical concept of a model is often confined to the supervised operation of estimating model parameters (e.g., slope and intercepts in linear regression, etc.). 
+::: {.callout-important}
+## **WTF**
+
+The stereotypical concept of a model is often confined to the supervised operation of estimating model parameters (e.g., slope and intercepts in linear regression, etc.). 
 
 However, the overall modeling process includes any serious data analysis steps before or after the  model fit. This can include steps such as PCA feature extraction, imputation, post hoc calibration, etc. 
 
 It is very important to think of each of these estimation procedures as part of "the model". 
 :::
+
 
 As we will see, some characteristics in our CMC data set can be problematic for some models. A number of pre-processing operations will be evaluated and optimized to counter these data characteristics. 
 
@@ -218,8 +250,10 @@ There are a variety of tools to compensate for this issue:
 
 In practice, different models have affinities for different types of predictor sets. We often have to couple different predictor sets to different models and discover which strategy works and which does not. 
 
-::: wtf
-**WTF #7**: The operations that you apply to the predictors before the model are at least as important as which supervised model that you use. _Feature engineering_ is the process of representing the predictor data in a way that makes the model have to work the least to be effective.
+::: {.callout-important}
+## **WTF**
+
+The operations that you apply to the predictors before the model are at least as important as which supervised model that you use. _Feature engineering_ is the process of representing the predictor data in a way that makes the model have to work the least to be effective.
 :::
 
 Another issue with these data is _baseline drift_. Recall from @fig-raman-spectra that the intensity values across samples have an initial downward trend towards about wavenumber 2500, then begin to trend upward.  In spectroscopy data, deviations in intensity from zero are commonly referred to as baseline drift, typically stemming from factors such as measurement system noise, interference, or fluorescence [@rinnan2009review]. Importantly, these deviations do not relate to the sample's chemical composition; they are a systematic nuisance. 
@@ -323,8 +357,10 @@ processed_data %>%
 
 Over the past half-century, the number and types of models for relating a set of predictors to a response has rapidly grown.  Improvements in computational power and mathematical complexity have been the primary drivers of this increase.  Traditionally, model complexity is generally tied to the number of parameters of a model.  As the number of model parameters increases, so does the ability of a model to adapt and morph to the relationship between predictors and the response.  For example, the basic partial least squares model has one tuning parameter and is effective at finding a linear relationship between predictors and the response.  However, this method is ineffective at finding non-linear relationships.  In contrast, consider a simple single-layer, feed-forward neural network.  This model can easily have many more parameters than the number of predictors.  For the example data, the number of predictors already exceeds the number of samples.  Therefore, even the simplest of neural network models can overfit the available data without appropriate precautions.  
 
-::: wtf
-**WTF #8**: Most ML models (or pre-processors) have tuning parameters: important parameters that cannot be directly estimated from the data (e.g., unlike a regression slope). 
+::: {.callout-important}
+## **WTF**
+
+Most ML models (or pre-processors) have tuning parameters: important parameters that cannot be directly estimated from the data (e.g., unlike a regression slope). 
 
 These parameters usually govern how complex a model can become. Hence, choosing appropriate tuning parameter values is a pivotal operation since it controls if the model over- or under-fits the data
 :::
@@ -335,8 +371,10 @@ How should the parameter sets be evaluated?  Answering this question depends on 
 
 In this manufacturing example, the response is continuous, and the metric of RMSE will be used to assess predictive performance.  
 
-::: wtf
-**WTF #8**: The performance metric that you choose is important; poor choices can guide you to a "correct" answer that might be inappropriate. 
+::: {.callout-important}
+## **WTF**
+
+The performance metric that you choose is important; poor choices can guide you to a "correct" answer that might be inappropriate. 
 
 For example, $R^2$ is a measure of correlation but not accuracy. Optimzing it can yeild models that are inaccurate at the high and low regions of the outcome distirbution. 
 :::
@@ -369,8 +407,10 @@ For each model, a set of 25 tuning parameter combinations are evaluated. For PLS
 
 For each tuning parameter combination, 10 repeats of 10-fold cross-validation are used to appropriately estimate the RMSE for future samples. We will examine the relationship between the tuning parameters and the estimated RMSE to help understand the performance patterns and to choose reasonable values for the parameters.  
 
-::: wtf
-**WTF #9**: Despite the literature, optimizing hyper-parameters using grid search is effective and can be very efficient using advanced (but easy to use) computational and statistical methods
+::: {.callout-important}
+## **WTF**
+
+Despite the literature, optimizing hyper-parameters using grid search is effective and can be very efficient using advanced (but easy to use) computational and statistical methods
 :::
 
 One computational tool for grid search is parallel processing. None of the 2,500 models estimated in the grid search depend on the other and, as such, can be executed simultaneously on different computer CPU cores. Software can seamlessly facilitate this and it is not uncommon to see 5-fold reductions in the computational time using this method. 
