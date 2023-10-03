@@ -10,8 +10,8 @@ options(pillar.advice = FALSE, pillar.min_title_chars = Inf)
 # ------------------------------------------------------------------------------
 # helpers
 
-preproc <- c("No Pre-Processing", "(1, 2, 15)", "(2, 2, 15)", "(1, 2, 49)")
 models <- c( "Partial Least Squares", "Random Forest", "Cubist", "Support Vector Machine")
+preproc <- c("No Pre-Processing", "(1, 2, 15)", "(2, 2, 15)", "(1, 2, 49)", "(2, 2, 49)")
 
 make_preproc_code <- function(do, po, ws) {
   ifelse( 
@@ -35,7 +35,9 @@ pull_results <- function(pattern, label) {
   rlang::inject(bind_rows(!!!rlang::syms(objs))) %>% 
     mutate(
       Model = label,
-      Pre = make_preproc_code(differentiation_order, polynomial_order, window_size)
+      Model = factor(Model, levels = models),
+      Pre = make_preproc_code(differentiation_order, polynomial_order, window_size),
+      Pre = factor(Pre, levels = preproc),
     )
 }
 
@@ -93,7 +95,7 @@ all_pred <-
     all_svm_preds %>% select(all_of(keep_cols))
   ) %>% 
   inner_join(
-    all_best, 
+    all_best %>% select(-RMSE, -n, -std_err), 
     by = join_by(Model, Pre, .config, differentiation_order, polynomial_order, window_size)
   ) %>% 
   mutate(
@@ -101,18 +103,44 @@ all_pred <-
     Pre = factor(Pre, levels = preproc)
   )
 
+if (interactive()) {
+  all_pred %>% 
+    ggplot(aes(concentration, .pred)) + 
+    geom_abline(col = "green", alpha = 1 / 2) + 
+    geom_point(alpha = 1 / 2) + 
+    facet_grid(Model ~ Pre) + 
+    coord_obs_pred()
+}
+  
 
+# ------------------------------------------------------------------------------
+# Collate PCA results
 
-all_pred %>% 
-  ggplot(aes(concentration, .pred)) + 
-  geom_abline(col = "green", alpha = 1 / 2) + 
-  geom_point(alpha = 1 / 2) + 
-  facet_grid(Model ~ Pre) + 
-  coord_obs_pred()
+load("RData/pca_results_0.RData")
+load("RData/pca_results_1.RData")
+load("RData/pca_results_2.RData")
+load("RData/pca_results_3.RData")
+load("RData/pca_results_4.RData")
+
+pca_data_objs <- ls(pattern = "pca_data_")
+all_pca_data <- 
+  rlang::inject(bind_rows(!!!rlang::syms(pca_data_objs))) %>% 
+  mutate(
+    Pre = make_preproc_code(differentiation_order, polynomial_order, window_size),
+    Pre = factor(Pre, levels = preproc)
+  )
+
+pca_var_objs <- ls(pattern = "pca_var_")
+all_pca_var <- 
+  rlang::inject(bind_rows(!!!rlang::syms(pca_var_objs))) %>% 
+  mutate(
+    Pre = make_preproc_code(differentiation_order, polynomial_order, window_size),
+    Pre = factor(Pre, levels = preproc)
+  )
 
 
 # ------------------------------------------------------------------------------
-# Collate results for this pre-processing configuration
+# Save results
 
 res <- ls(pattern = "^all_")
 save(list = res, file = "RData/all_results.RData", compress = TRUE)
