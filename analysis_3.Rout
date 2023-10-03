@@ -17,6 +17,8 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 'help.start()' for an HTML browser interface to help.
 Type 'q()' to quit R.
 
+> # The analysis_#.R files have roughly the same format. To see code comments, 
+> # take a look at analysis_1.R
 > library(tidymodels)
 ── Attaching packages ────────────────────────────────────── tidymodels 1.1.1 ──
 ✔ broom        1.0.5     ✔ recipes      1.0.8
@@ -32,7 +34,7 @@ Type 'q()' to quit R.
 ✖ dplyr::filter()  masks stats::filter()
 ✖ dplyr::lag()     masks stats::lag()
 ✖ recipes::step()  masks stats::step()
-• Search for functions across packages at https://www.tidymodels.org/find/
+• Use tidymodels_prefer() to resolve common conflicts.
 > library(plsmod)
 > library(rules)
 
@@ -42,12 +44,7 @@ The following object is masked from ‘package:dials’:
 
     max_rules
 
-> 
-> # We'll use an optimized space-filling deisng not yet in tidymodels
 > library(sfd) # topepo/sfd
-> 
-> # We use parallel processing on unix via forking. This pacakge is not available 
-> # for windows but you can do something similar with the doParallel package
 > library(doMC)
 Loading required package: foreach
 
@@ -74,30 +71,29 @@ Loading required package: parallel
 > load("RData/processed_data.RData")
 > load("RData/data_wide.RData")
 > 
-> 
 > # ------------------------------------------------------------------------------
-> # Analysis of pre-processor 1: diffs = 1, poly = 2, window = 15
+> # Analysis of pre-processor 3: diffs = 1, poly = 2, window = 49
 > 
-> preproc_1 <- tibble(differentiation_order = 1, polynomial_order = 2, window_size = 15)
+> preproc_3 <- tibble(differentiation_order = 1, polynomial_order = 2, window_size = 49)
 > 
-> data_1 <- 
+> data_3 <- 
 +   processed_data %>% 
-+   inner_join(preproc_1, by = c("differentiation_order", "polynomial_order", "window_size")) %>% 
++   inner_join(preproc_3, by = c("differentiation_order", "polynomial_order", "window_size")) %>% 
 +   select(-differentiation_order, -polynomial_order, -window_size)
 > 
 > set.seed(910)
-> split_1 <- initial_split(data_1, strata = concentration, prop = 0.77)
+> split_3 <- initial_split(data_3, strata = concentration, prop = 0.77)
 Warning message:
 The number of observations in each quantile is below the recommended threshold of 20.
 • Stratification will use 3 breaks instead. 
-> train_1 <- training(split_1)
-> test_1  <- testing(split_1)
+> train_3 <- training(split_3)
+> test_3  <- testing(split_3)
 > 
 > set.seed(522)
-> folds_1 <- vfold_cv(train_1, v = 10, repeats = 5)
+> folds_3 <- vfold_cv(train_3, v = 10, repeats = 5)
 > 
-> base_rec_1 <- 
-+   recipe(concentration ~ ., data = train_1) %>% 
+> base_rec_3 <- 
++   recipe(concentration ~ ., data = train_3) %>% 
 +   # For some larger values of window_size, there are columns with all missing
 +   # predictor values; let's remove those by determining that they have a single
 +   # unique value
@@ -108,39 +104,40 @@ The number of observations in each quantile is below the recommended threshold o
 > # ------------------------------------------------------------------------------
 > # Setup some options
 > 
-> # Save the hold-out predictions
-> grid_ctrl <- control_grid(save_pred = TRUE, parallel_over = "everything")
+> grid_ctrl <- 
++   control_grid(save_pred = TRUE,  # Save the hold-out predictions
++                parallel_over = "everything")
+> 
 > bayes_ctrl <- control_bayes(save_pred = TRUE, no_improve = Inf)
 > 
 > # ------------------------------------------------------------------------------
 > # Partial least squares analysis
 > 
-> # Add centering and scaling befor PLS
-> norm_rec_1 <- 
-+   base_rec_1 %>% 
+> norm_rec_3 <- 
++   base_rec_3 %>% 
 +   step_normalize(starts_with("x"))
 > 
 > pls_spec <- pls(num_comp = tune()) %>% set_mode("regression")
 > 
-> pls_wflow_1 <- 
+> pls_wflow_3 <- 
 +   workflow() %>% 
-+   add_recipe(norm_rec_1) %>% 
++   add_recipe(norm_rec_3) %>% 
 +   add_model(pls_spec)
 > 
-> pls_tune_1 <-
-+   tune_grid(pls_wflow_1,
-+             resamples = folds_1, 
+> pls_tune_3 <-
++   tune_grid(pls_wflow_3,
++             resamples = folds_3, 
 +             grid = tibble(num_comp = 1:25),
 +             control = grid_ctrl)
 > 
-> pls_metrics_1 <- 
-+   collect_metrics(pls_tune_1) %>% 
-+   cbind(preproc_1) %>% 
+> pls_metrics_3 <- 
++   collect_metrics(pls_tune_3) %>% 
++   cbind(preproc_3) %>% 
 +   as_tibble()
 > 
-> pls_pred_1 <- 
-+   collect_predictions(pls_tune_1, summarize = TRUE) %>% 
-+   cbind(preproc_1) %>% 
+> pls_pred_3 <- 
++   collect_predictions(pls_tune_3, summarize = TRUE) %>% 
++   cbind(preproc_3) %>% 
 +   as_tibble()
 > 
 > # ------------------------------------------------------------------------------
@@ -150,39 +147,31 @@ The number of observations in each quantile is below the recommended threshold o
 +   rand_forest(mtry = tune(), trees = 1000) %>%
 +   set_mode("regression")
 > 
-> # For random forest, the range of mtry depends on the number of columns and that
-> # number will change over different preprocessing values. Here we figure out the
-> # number of predictors, make a grid, and also convert mtry to a proportion that
-> # can be used for plotting later. 
-> # However, larger differentiation orders result in columns with all missing values.
-> # For this reason, we prep the recipe on the training set and derive the number 
-> # of predictors from the process version of the training set. 
-> 
-> prepped_1 <- prep(base_rec_1) %>% bake(new_data = NULL)
-> num_predictors_1 <- sum(grepl("^x", names(prepped_1)))
-> mtry_obj_1 <- mtry(c(1, num_predictors_1))
-> mtry_vals_1 <- unique(value_seq(mtry_obj_1, 25))
-> mtry_prop_1 <- tibble(mtry = mtry_vals_1, prop = mtry_vals_1 / num_predictors_1)
+> prepped_3 <- prep(base_rec_3) %>% bake(new_data = NULL)
+> num_predictors_3 <- sum(grepl("^x", names(prepped_3)))
+> mtry_obj_3 <- mtry(c(2, num_predictors_3))
+> mtry_vals_3 <- unique(value_seq(mtry_obj_3, 25))
+> mtry_prop_3 <- tibble(mtry = mtry_vals_3, prop = mtry_vals_3 / num_predictors_3)
 > 
 > set.seed(382)
-> rf_tune_1 <-
+> rf_tune_3 <-
 +   rf_spec %>% 
-+   tune_grid(base_rec_1,
-+             resamples = folds_1, 
-+             grid = tibble(mtry = mtry_vals_1),
++   tune_grid(base_rec_3,
++             resamples = folds_3, 
++             grid = tibble(mtry = mtry_vals_3),
 +             control = grid_ctrl)
 > 
-> rf_metrics_1 <- 
-+   collect_metrics(rf_tune_1) %>% 
-+   cbind(preproc_1) %>% 
+> rf_metrics_3 <- 
++   collect_metrics(rf_tune_3) %>% 
++   cbind(preproc_3) %>% 
 +   as_tibble() %>% 
-+   full_join(mtry_prop_1, by = "mtry")
++   full_join(mtry_prop_3, by = "mtry")
 > 
-> rf_pred_1 <- 
-+   collect_predictions(rf_tune_1, summarize = TRUE) %>% 
-+   cbind(preproc_1) %>% 
+> rf_pred_3 <- 
++   collect_predictions(rf_tune_3, summarize = TRUE) %>% 
++   cbind(preproc_3) %>% 
 +   as_tibble() %>% 
-+   full_join(mtry_prop_1, by = "mtry")
++   full_join(mtry_prop_3, by = "mtry")
 > 
 > 
 > # ------------------------------------------------------------------------------
@@ -199,21 +188,21 @@ The number of observations in each quantile is below the recommended threshold o
 > 
 > 
 > set.seed(382)
-> cb_tune_1 <-
+> cb_tune_3 <-
 +   cubist_spec %>% 
-+   tune_grid(base_rec_1,
-+             resamples = folds_1, 
++   tune_grid(base_rec_3,
++             resamples = folds_3, 
 +             grid = cb_grid,
 +             control = grid_ctrl)
 > 
-> cb_metrics_1 <- 
-+   collect_metrics(cb_tune_1) %>% 
-+   cbind(preproc_1) %>% 
+> cb_metrics_3 <- 
++   collect_metrics(cb_tune_3) %>% 
++   cbind(preproc_3) %>% 
 +   as_tibble() 
 > 
-> cb_pred_1 <- 
-+   collect_predictions(cb_tune_1, summarize = TRUE) %>% 
-+   cbind(preproc_1) %>% 
+> cb_pred_3 <- 
++   collect_predictions(cb_tune_3, summarize = TRUE) %>% 
++   cbind(preproc_3) %>% 
 +   as_tibble() 
 > 
 > 
@@ -224,101 +213,80 @@ The number of observations in each quantile is below the recommended threshold o
 +   svm_rbf(cost = tune(), rbf_sigma = tune()) %>% 
 +   set_mode("regression")
 > 
-> svm_wflow_1 <- 
+> svm_wflow_3 <- 
 +   workflow() %>% 
-+   add_recipe(norm_rec_1) %>% 
++   add_recipe(norm_rec_3) %>% 
 +   add_model(svm_spec)
 >   
-> # In the tuning parameter space, SVMs tend to have flat plains with a small
-> # 'hill' of good performance. We'll start with a small space-filling design and
-> # then use Bayesian optimization to try to iteratively search for the hill. 
-> # Otherwise we might need a much larger grid. 
 > set.seed(382)
-> svm_init_1 <-
+> svm_init_3 <-
 +   svm_spec %>% 
-+   tune_grid(base_rec_1,
-+             resamples = folds_1, 
++   tune_grid(base_rec_3,
++             resamples = folds_3, 
 +             grid = 10,
 +             control = grid_ctrl)
 ! Fold01, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
 ! Fold02, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold06, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold07, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
 ! Fold08, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold09, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
 ! Fold10, Repeat1: internal: A correlation computation is required, but `estimate` is constant and ha...
 ! Fold02, Repeat2: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold05, Repeat2: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold07, Repeat2: internal: A correlation computation is required, but `estimate` is constant and ha...
 ! Fold08, Repeat2: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold09, Repeat2: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold10, Repeat2: internal: A correlation computation is required, but `estimate` is constant and ha...
 ! Fold01, Repeat3: internal: A correlation computation is required, but `estimate` is constant and ha...
 ! Fold05, Repeat3: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold07, Repeat3: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold10, Repeat3: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold01, Repeat4: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold04, Repeat4: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold07, Repeat4: internal: A correlation computation is required, but `estimate` is constant and ha...
 ! Fold09, Repeat4: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold10, Repeat4: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold01, Repeat5: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold06, Repeat5: internal: A correlation computation is required, but `estimate` is constant and ha...
 ! Fold07, Repeat5: internal: A correlation computation is required, but `estimate` is constant and ha...
 ! Fold08, Repeat5: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold09, Repeat5: internal: A correlation computation is required, but `estimate` is constant and ha...
-! Fold10, Repeat5: internal: A correlation computation is required, but `estimate` is constant and ha...
 > 
 > set.seed(382)
-> svm_tune_1 <-
+> svm_tune_3 <-
 +   svm_spec %>% 
-+   tune_bayes(base_rec_1,
-+              resamples = folds_1, 
++   tune_bayes(base_rec_3,
++              resamples = folds_3, 
 +              iter = 15,
-+              initial = svm_init_1,
++              initial = svm_init_3,
 +              control = bayes_ctrl)
 > 
-> svm_metrics_1 <- 
-+   collect_metrics(svm_tune_1) %>% 
-+   cbind(preproc_1) %>% 
+> svm_metrics_3 <- 
++   collect_metrics(svm_tune_3) %>% 
++   cbind(preproc_3) %>% 
 +   as_tibble() 
 > 
-> svm_pred_1 <- 
-+   collect_predictions(svm_tune_1, summarize = TRUE) %>% 
-+   cbind(preproc_1) %>% 
+> svm_pred_3 <- 
++   collect_predictions(svm_tune_3, summarize = TRUE) %>% 
++   cbind(preproc_3) %>% 
 +   as_tibble() 
 > 
 > # ------------------------------------------------------------------------------
 > # PCA components for diagnostic plots 
 > 
-> rec_pca_1 <- 
-+   norm_rec_1 %>% 
+> rec_pca_3 <- 
++   norm_rec_3 %>% 
 +   step_normalize(starts_with("x")) %>% 
 +   step_pca(starts_with("x"), num_comp = 5, id = "pca") %>% 
 +   prep()
 > 
-> pca_data_1 <- 
-+   rec_pca_1 %>% 
+> pca_data_3 <- 
++   rec_pca_3 %>% 
 +   bake(new_data = NULL) %>% 
-+   cbind(preproc_1) %>% 
++   cbind(preproc_3) %>% 
 +   as_tibble() 
 > 
-> pca_var_1 <- 
-+   rec_pca_1 %>% 
+> pca_var_3 <- 
++   rec_pca_3 %>% 
 +   tidy(id = "pca", type = "variance") %>% 
 +   filter(terms == "cumulative percent variance") %>% 
 +   dplyr::select(value, component) %>% 
-+   cbind(preproc_1) %>% 
++   cbind(preproc_3) %>% 
 +   as_tibble() 
 > 
 > # ------------------------------------------------------------------------------
 > # Collate results for this pre-processing configuration
 > 
-> res_1 <- ls(pattern = "(_metrics_1)|(_pred_1)")
-> save(list = res_1, file = "RData/preproc_results_1.RData", compress = TRUE)
+> res_3 <- ls(pattern = "(_metrics_3)|(_pred_3)")
+> save(list = res_3, file = "RData/preproc_results_3.RData", compress = TRUE)
 > 
-> res_pca_1 <- ls(pattern = "^pca_")
-> save(list = res_pca_1, file = "RData/pca_results_1.RData", compress = TRUE)
+> res_pca_3 <- ls(pattern = "^pca_")
+> save(list = res_pca_3, file = "RData/pca_results_3.RData", compress = TRUE)
 > 
 > # ------------------------------------------------------------------------------
 > 
@@ -444,4 +412,4 @@ The number of observations in each quantile is below the recommended threshold o
 + }
 > proc.time()
      user    system   elapsed 
-52826.030  7243.149  3358.265 
+49856.773  6439.665  3158.190 
