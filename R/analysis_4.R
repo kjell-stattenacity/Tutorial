@@ -84,7 +84,12 @@ pls_metrics_4 <-
 pls_pred_4 <- 
   collect_predictions(pls_tune_4, summarize = TRUE) %>% 
   cbind(preproc_4) %>% 
-  as_tibble()
+  as_tibble() %>% 
+  inner_join(
+    train_4 %>% add_rowindex() %>% select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  select(-.row)
 
 # ------------------------------------------------------------------------------
 # Random forest analysis
@@ -117,7 +122,12 @@ rf_pred_4 <-
   collect_predictions(rf_tune_4, summarize = TRUE) %>% 
   cbind(preproc_4) %>% 
   as_tibble() %>% 
-  full_join(mtry_prop_4, by = "mtry")
+  full_join(mtry_prop_4, by = "mtry") %>% 
+  inner_join(
+    train_4 %>% add_rowindex() %>% select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  select(-.row)
 
 
 # ------------------------------------------------------------------------------
@@ -148,7 +158,12 @@ cb_metrics_4 <-
 cb_pred_4 <- 
   collect_predictions(cb_tune_4, summarize = TRUE) %>% 
   cbind(preproc_4) %>% 
-  as_tibble() 
+  as_tibble() %>% 
+  inner_join(
+    train_4 %>% add_rowindex() %>% select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  select(-.row) 
 
 
 # ------------------------------------------------------------------------------
@@ -188,7 +203,12 @@ svm_metrics_4 <-
 svm_pred_4 <- 
   collect_predictions(svm_tune_4, summarize = TRUE) %>% 
   cbind(preproc_4) %>% 
-  as_tibble() 
+  as_tibble() %>% 
+  inner_join(
+    train_4 %>% add_rowindex() %>% select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  select(-.row) 
 
 # ------------------------------------------------------------------------------
 # PCA components for diagnostic plots 
