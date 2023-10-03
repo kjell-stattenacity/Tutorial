@@ -3,6 +3,7 @@
 library(tidymodels)
 library(plsmod)
 library(rules)
+library(sfd) # topepo/sfd
 library(doMC)
 
 # ------------------------------------------------------------------------------
@@ -20,9 +21,9 @@ load("RData/processed_data.RData")
 load("RData/data_wide.RData")
 
 # ------------------------------------------------------------------------------
-# Analysis of pre-processor 4: diffs = 1, poly = 2, window = 49
+# Analysis of pre-processor 4: diffs = 2, poly = 2, window = 49
 
-preproc_4 <- tibble(differentiation_order = 1, polynomial_order = 2, window_size = 49)
+preproc_4 <- tibble(differentiation_order = 2, polynomial_order = 2, window_size = 49)
 
 data_4 <- 
   processed_data %>% 
@@ -124,12 +125,19 @@ rf_pred_4 <-
 
 cubist_spec <- cubist_rules(committees = tune(), neighbors = tune())
 
+cb_grid <- 
+  get_design(2, 25) %>% 
+  update_values(
+    list(committees() %>% value_seq(25), rep_len(0:9, 25))
+  ) %>% 
+  setNames(c("committees", "neighbors"))
+
 set.seed(382)
 cb_tune_4 <-
   cubist_spec %>% 
   tune_grid(base_rec_4,
             resamples = folds_4, 
-            grid = 25,
+            grid = cb_grid,
             control = grid_ctrl)
 
 cb_metrics_4 <- 
@@ -201,7 +209,7 @@ pca_var_4 <-
   rec_pca_4 %>% 
   tidy(id = "pca", type = "variance") %>% 
   filter(terms == "cumulative percent variance") %>% 
-  select(value, component) %>% 
+  dplyr::select(value, component) %>% 
   cbind(preproc_4) %>% 
   as_tibble() 
 

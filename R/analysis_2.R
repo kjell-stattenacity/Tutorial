@@ -3,6 +3,7 @@
 library(tidymodels)
 library(plsmod)
 library(rules)
+library(sfd) # topepo/sfd
 library(doMC)
 
 # ------------------------------------------------------------------------------
@@ -124,12 +125,20 @@ rf_pred_2 <-
 
 cubist_spec <- cubist_rules(committees = tune(), neighbors = tune())
 
+cb_grid <- 
+  get_design(2, 25) %>% 
+  update_values(
+    list(committees() %>% value_seq(25), rep_len(0:9, 25))
+  ) %>% 
+  setNames(c("committees", "neighbors"))
+
+
 set.seed(382)
 cb_tune_2 <-
   cubist_spec %>% 
   tune_grid(base_rec_2,
             resamples = folds_2, 
-            grid = 25,
+            grid = cb_grid,
             control = grid_ctrl)
 
 cb_metrics_2 <- 
@@ -201,7 +210,7 @@ pca_var_2 <-
   rec_pca_2 %>% 
   tidy(id = "pca", type = "variance") %>% 
   filter(terms == "cumulative percent variance") %>% 
-  select(value, component) %>% 
+  dplyr::select(value, component) %>% 
   cbind(preproc_2) %>% 
   as_tibble() 
 

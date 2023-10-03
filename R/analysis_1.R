@@ -2,6 +2,9 @@ library(tidymodels)
 library(plsmod)
 library(rules)
 
+# We'll use an optimized space-filling deisng not yet in tidymodels
+library(sfd) # topepo/sfd
+
 # We use parallel processing on unix via forking. This pacakge is not available 
 # for windows but you can do something similar with the doParallel package
 library(doMC)
@@ -133,12 +136,20 @@ rf_pred_1 <-
 
 cubist_spec <- cubist_rules(committees = tune(), neighbors = tune())
 
+cb_grid <- 
+  get_design(2, 25) %>% 
+  update_values(
+    list(committees() %>% value_seq(25), rep_len(0:9, 25))
+  ) %>% 
+  setNames(c("committees", "neighbors"))
+
+
 set.seed(382)
 cb_tune_1 <-
   cubist_spec %>% 
   tune_grid(base_rec_1,
             resamples = folds_1, 
-            grid = 25,
+            grid = cb_grid,
             control = grid_ctrl)
 
 cb_metrics_1 <- 
@@ -214,7 +225,7 @@ pca_var_1 <-
   rec_pca_1 %>% 
   tidy(id = "pca", type = "variance") %>% 
   filter(terms == "cumulative percent variance") %>% 
-  select(value, component) %>% 
+  dplyr::select(value, component) %>% 
   cbind(preproc_1) %>% 
   as_tibble() 
 
