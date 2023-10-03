@@ -25,6 +25,7 @@ knitr:
 #| include: false
 
 library(data.table)
+library(sfdf)   # from github.com/topepo/sfd
 library(patchwork)
 library(tidymodels)
 
@@ -444,6 +445,27 @@ One computational tool for grid search is parallel processing. None of the 1,250
 Also, there are statistical methods to evaluate 25 models without having to estimate all of them. For example, for some models, the most complex model can be fit, and results from sub-models can be derived at no extra cost. For example, if a Cubist model is created with an ensemble size of 50, we can get predictions from the same model for sizes 1 - 40 at no computational cost. Additionally, racing methods can conduct interim analyses during grid search and remove tuning parameter combinations that are unlikely to be chosen as the best results. 
 
 Finally, grid search had been considered inefficient because of the assumption that regular (i.e., full factorial) grids were used. If we evaluated $L$ values of each of $M$ tuning parameters, the full factorial set of $L^M$ combinations can become very large. This is no surprise to most CMC statisticians and engineers. However, as previously mentioned, the better design choices for grid search are space-filling designs. It is difficult to quantify the positive impact these designs have had on optimizing models, both in terms of efficiency and efficacy. 
+
+
+```{r}
+#| label: fig-sfd
+#| out-width: "60%"
+#| fig-align: center
+#| fig-height: 5
+#| fig-width: 5
+#| echo: false
+#| warning: false
+#| cache: true
+#| fig-cap: "An example spa ce-filling design for two tuning parameters in a Cubist model"
+
+get_design(2, 25) %>% 
+  update_values(list(committees() %>% value_seq(25), rep_len(0:9, 25))) %>% 
+  setNames(c("committees", "neighbors")) %>% 
+  ggplot(aes(committees, neighbors)) + 
+  geom_point() + 
+  labs(x = "Ensemble Size", y = "Number of Nearest Neightbors")
+
+```
 
 An alternate tool called Bayesian optimization was used to optimize the support vector machine models. It starts with a small grid of results, in our case, a space-filling design with ten tuning parameter combinations. These initial results create a Gaussian Process model where the resampled RMSE values are the outcome and the SVM tuning parameters (cost and RBF dispersion) are used as predictors. The model then predicts the next tuning parameter combination to resample. Once those results are available, the process repeats. Fifteen iterations of this iterative optimization process were used to evaluate a total of 25 tuning parameter combinations for the SVM models. 
 
