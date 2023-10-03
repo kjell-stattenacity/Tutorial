@@ -53,7 +53,9 @@ load("RData/all_results.RData")
 
 ## Introduction
 
-It feels like machine learning is everywhere. Within data analysis circles, almost every discussion involves how artificial intelligence and machine learning can change our lives. ChatGPT has turned up the noise in the conversation, and many people believe it should be applied. 
+It feels like machine learning is everywhere. Within data analysis circles, almost every discussion involves how artificial intelligence and machine learning can change our lives. ChatGPT has turned up the noise in the conversation, and many people believe it should be applied. TODO more here
+
+This tutorial assumes that the reader has had some exposure to machine learning (a.k.a. predictive modeling or statistical learning) and related techniques such as resampling. If not, we suggest @HastieEtAl2017 for technical information and @kuhn2013applied for practical descriptions focused on applying these methods. For deep learning methods, @goodfellow2016deep and @charu2018neural are good introductions.
 
 This tutorial discusses more realistic approaches to using machine learning in preclinical applications, specifically Chemistry, Manufacturing, and Control (CMC) applications. The structure takes a relatively ordinary experimental problem (predicting drug concentration using spectroscopy) to frame a discussion about what machine learning can, can't do, and probably should do. The idea is that most machine learning training materials are not holistic examinations of how the process actually works. While describing our analysis, we will highlight "what they forgot to tell you" about these tools. 
 
@@ -65,7 +67,7 @@ As an example, it might make sense to discuss what the term "machine learning" a
 The idea of a "machine learning model" is more defined by the project's goal than the type of model. 
 :::
 
-It is difficult to argue that ML models focus on making the most accurate prediction of a new sample based on historical data. From that point of view, it could be any sufficiently complex model that performs sufficiently well. For example, a linear regression could fit this definition by including appropriate interactions or nonlinear terms, such as spline basis expansions. However...
+It is difficult to argue that ML models focus on making the most accurate prediction of a new sample based on historical data. From that point of view, it could be any sufficiently complex model that performs sufficiently well. For example, a linear regression could fit this definition by including appropriate interactions or nonlinear terms, such as spline basis expansions. The models most representative of the current zeitgeist are sophisticaled and impenetrable methods such as neural networks and boosted trees. However...
 
 ::: {.callout-important}
 ## **WTF**
@@ -75,9 +77,9 @@ You probably don't need a complex black-box machine learning model.
 
 Why not? First, not all problems are purely prediction problems. Most black-box models used for ML, such as neural networks or tree ensembles, are excellent at prediction but poor at almost anything else. We have seen applications where simple two-factor experimental data were analyzed using the random forest ensemble method instead of a simple ANOVA model. When it comes to judging what predictors are important to one another, many machine learning models are not very applicable. 
 
-Another reason is the potential limitations of experimental data. Sometimes, there is not enough data to support fitting such a model. For example, if an unreplicated response surface design were available, training a model and characterizing its efficacy with so few data points would be difficult. 
+Another reason is the potential limitations of experimental data. Sometimes, there is not enough data to support fitting such a model. For example, if an unreplicated response surface design were available, training a model and characterizing its efficacy with so few data points would be difficult. Data size is a limitation, but there are other challenging data characteristics: irrelevant predictors, measurement system noise, censored values, multicollinearity, and others. 
 
-For some, there is a significant urge to fit complex ML models since they often are the best choice in completely different domains. These domains often have access to excessive amounts of non-tabular data. These are data structures that do not naturally fit into the traditional rectangular data format (e.g., spreadsheets or database tables). The most common examples are images, video, and text. Given a large amount of data and complex enough models, we have tools that recognize if a cat is in a picture or can ingest a prompt and appear to complete a task correctly, such as answering a question or writing code. These models are often complex deep-learning neural networks.
+For some, there is a significant urge to fit complex ML models since they often are the best choice in completely different domains. These domains often have access to excessive amounts of non-tabular data. These are data structures that do not naturally fit into the traditional rectangular data format (e.g., spreadsheets or database tables). The most common examples are images, video, and text. Given a large amount of data and complex enough models, we have tools that recognize cats a picture or can ingest a prompt and appear to complete a task correctly, such as answering a question or writing code. These models are often complex deep-learning neural networks.
 
 A disconnect occurs because most experimental data used in CMC applications are tabular (or can be made to be tabular). 
 
@@ -87,7 +89,7 @@ A disconnect occurs because most experimental data used in CMC applications are 
 Unless you are analyzing images, it is exceedingly unlikely that a deep-learning model is your best option. 
 :::
 
-There is considerable anecdotal evidence that highly complex neural networks may not perform well for reasonably sized tabular data sets. This is currently being examined more formally in the literature [@kadra2021regularization;@gorishniy2021revisiting;@Borisov2022;@SHWARTZZIV202284]. Experimental data in preclinical applications can often exhibit colinearity between predictors and data measured with error. For novel data sets, we often do not know which predictors have a relationship with the outcome, increasing the possibility that some irrelevant predictors will be used to fit the model. In general, neural networks do not thrive in these environments [@kuhn2013applied]. 
+There is considerable anecdotal evidence that highly complex neural networks may not perform well for reasonably sized tabular data sets. This is currently being examined more formally in the literature [@kadra2021regularization;@gorishniy2021revisiting;@Borisov2022;@SHWARTZZIV202284]. Experimental data in preclinical applications can often exhibit multicollinearity between predictors and data measured with error. For novel data sets, we often do not know which predictors have a relationship with the outcome, increasing the possibility that some irrelevant predictors will be used to fit the model. In general, neural networks do not thrive in these environments [@kuhn2013applied]. 
 
 Simply put, deep learning models can be effective in specific scenarios but are not appropriate in many other situations. 
 
@@ -157,6 +159,25 @@ ggplot(for_cor_fig, aes(x = Lag, y = cor)) +
   ylim(0, 1)
 ```
 
+
+```{r}
+#| label: pca-info
+#| include: false
+pca_sample <- 
+  all_pca_data %>% 
+  slice_max(abs(PC1), by = c(Pre)) %>% 
+  distinct(sample_id) %>% 
+  pluck("sample_id")
+
+pca_cap <- 
+  paste0(
+    "Two-component PCA plots for each pre-processing method. One particular sample (#", 
+    pca_sample, ") has extreme values for the first principal compoent across all ",
+    "pre-processing methods.")
+```
+
+With such a large dimensional data set, it is difficult to investigate specific predictors visually. Additionally, the high degree of between-predictor correlations further increases the ability to investigate the data. In @sec-pre-processing, we'll look at specific data points using dimension reduction tools under different types of signal processing regiemes. 
+
 In addition to understanding the predictors, we should also understand characteristics of the response.  Examining the response distribution can help determine if a transformation may be necessary or if there are samples that are unusual with respect to the majority of the data.  @fig-concentration presents the histogram drug product concentration across the samples.  For this data, the distribution is approximately symmetric and has a range of `r min(data_wide$concentration)` to `r max(data_wide$concentration)`.  Based on this figure, a transformation does not appear to be necessary, and there are no samples that are unusual.
 
 ```{r}
@@ -176,45 +197,6 @@ ggplot(data_wide, aes(x = concentration)) +
   ylab("Frequency") +
   xlab("Drug Product Concentration (mg/mL)")
 ```
-
-```{r}
-#| label: pca-info
-#| include: false
-pca_sample <- 
-  all_pca_data %>% 
-  slice_max(abs(PC1), by = c(Pre)) %>% 
-  distinct(sample_id) %>% 
-  pluck("sample_id")
-
-pca_cap <- 
-  paste0(
-    "Two-component PCA plots for each pre-processing method. One particular sample (#", 
-    pca_sample, ") has extreme values for the first principal compoent across all ",
-    "pre-processing methods.")
-```
-
-Principal component analysis was conducted on the training set predictors (after centering and scaling). This can help us understand if there are any unwanted systematic effects in the data (such as differences in reagents, instruments, etc.). @fig-pca-plot shows the results using two components. These components accounted for between 65%-95% of the predictor information, with the exception of the (2, 2, 15) set, which only captured about 45% of the information. With the exception of a single sample, there are no obvious patterns in the results to give us pause (such as clustering). That odd sample, number `r pca_sample`, is the same data point in @fig-raman-spectra with relatively low intensity compared to the other spectra. It is unclear how this would affect the results (if at all), so it was retained in the data set. Later analyses will examine whether this sample is associated with a larger residual or not. 
-
-```{r}
-#| label: fig-pca-plot
-#| echo: false
-#| out-width: "80%"
-#| fig-align: center
-#| fig-cap: !expr pca_cap
-
-all_pca_data %>% 
-  mutate(
-    PC1 = ifelse(grepl("1, 2", Pre), -PC1, PC1),
-    PC2 = ifelse(grepl("1, 2", Pre), -PC2, PC2)
-  ) %>% 
-  ggplot(aes(PC1, PC2)) + 
-  geom_vline(xintercept = 0, col = "green", lty = 2) +
-  geom_hline(yintercept = 0, col = "green", lty = 2) +
-  geom_point(cex = 1.2, alpha = 1 / 2) + 
-  facet_wrap(~ Pre, ncol = 3) + 
-  coord_obs_pred()
-```
-
 
 ## Data Spending
 
@@ -265,7 +247,7 @@ if (knitr::is_html_output()) {
 
 For the example presented here, a stratified random approach will be used to split the data into a training (75%) and a test (25%) set.  The distribution of the response will be used as the stratification variable such that an equal proportion of samples will be randomly selected within each quartile of the distribution.  
 
-## Pre-processing
+## Pre-processing {#sec-pre-processing}
 
 The predictors and response, in their original form, are usually not in the best form for enabling models to find an optimal predictive relationship.  The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors.  Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics.  However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present.  As a simple example, consider a predictor that has three categories: low, medium, and high.  The information, in this form, cannot be ingested by most models.  Instead, the information needs to be converted into either an ordinal-scaled predictor or two binary variables.  Missing data also wreaks havoc on predictive models because the models require non-missing information.  Therefore, appropriate pre-processing steps must be taken before model training.
 
@@ -395,9 +377,27 @@ processed_data %>%
 
 @fig-lagged-spectra-across-sets displays the correlation across the first 1000 wavenumbers for the original data as well as each of the selected Savitzky-Golay transformations. The effect of differentiation and window size on the correlation across the transformed intensities is clear.  When comparing first-order differentiation to second-order differentiation, second-order differentiation more rapidly reduces correlation among close wavenumbers up to about the nearest 100 wavenumbers.  Increasing the smoothing window also helps smooth the correlation profiles but does not further reduce correlation. We will examine the impact of each of these different smoothing parameter selections on the model performance in the following sections.
 
+For these data, principal component analysis can be conducted on the training set predictors (after centering and scaling the predictors). This can help us understand if there are any unwanted systematic effects in the data (such as differences in reagents, instruments, etc.). @fig-pca-plot shows the results using two components. These components accounted for between 65%-95% of the predictor information, with the exception of the (2, 2, 15) set, which only captured about 45% of the information. With the exception of a single sample, there are no obvious patterns in the results to give us pause (such as clustering). That odd sample, number `r pca_sample`, is the same data point in @fig-raman-spectra with relatively low intensity compared to the other spectra. It is unclear how this would affect the results (if at all), so it was retained in the data set. Later analyses will examine whether this sample is associated with  largers residuals. 
 
-PCA plot on processed data
+```{r}
+#| label: fig-pca-plot
+#| echo: false
+#| out-width: "80%"
+#| fig-align: center
+#| fig-cap: !expr pca_cap
 
+all_pca_data %>% 
+  mutate(
+    PC1 = ifelse(grepl("1, 2", Pre), -PC1, PC1),
+    PC2 = ifelse(grepl("1, 2", Pre), -PC2, PC2)
+  ) %>% 
+  ggplot(aes(PC1, PC2)) + 
+  geom_vline(xintercept = 0, col = "green", lty = 2) +
+  geom_hline(yintercept = 0, col = "green", lty = 2) +
+  geom_point(cex = 1.2, alpha = 1 / 2) + 
+  facet_wrap(~ Pre, ncol = 3) + 
+  coord_obs_pred()
+```
 
 ## Machine Learning Models {#sec-modeling}
 
@@ -429,7 +429,7 @@ While there are many models to choose from, we will compare four modeling techni
 
 ### Partial Least Sqaures
 
-Spectroscopy data has traditionally been modeled using PLS [@htet2021pls;@esmonde2017raman].  PLS is a logical technique to use for this type of data because it naturally handles highly correlated predictors.  This model seeks to find linear combinations of the original predictors that have an optimal correlation with the response by using as few linear combinations as possible [@wold2001pls].  Specifically, PLS finds linear combinations that summarize variability across the predictors while simultaneously finding the combinations that are optimally correlated with the response.  One primary tuning parameter for PLS is the number of linear combinations, or latent variables, to retain.
+Spectroscopy data has traditionally been modeled using PLS [@htet2021pls;@esmonde2017raman].  PLS is a logical technique to use for this type of data because it naturally handles highly correlated predictors.  This model seeks to find linear combinations of the original predictors that have an optimal correlation with the response by using as few linear combinations as possible [@wold2001pls].  Specifically, PLS finds linear combinations that summarize variability across the predictors while simultaneously optimizing their correlation with the response.  The primary tuning parameter for PLS is the number of linear combinations, or latent variables, to retain.
 
 ### Random forest
 
@@ -461,7 +461,7 @@ Despite the literature, optimizing hyper-parameters using grid search is effecti
 
 One computational tool for grid search is parallel processing. None of the 1,250 models estimated in the grid search depend on the other and, as such, can be executed simultaneously on different computer CPU cores. Software can seamlessly facilitate this and it is not uncommon to see 5-fold reductions in the computational time using this method [@tmwr]. 
 
-Also, there are statistical methods to evaluate 25 models without having to estimate all of them. For example, for some models, the most complex model can be fit, and results from sub-models can be derived at no extra cost. For example, if a Cubist model is created with an ensemble size of 50, we can get predictions from the same model for sizes 1 - 40 at no computational cost. Additionally, racing methods [@kuhn2014futility] can conduct interim analyses during grid search and remove tuning parameter combinations that are unlikely to be chosen as the best results. 
+Also, there are statistical methods to evaluate 25 models without having to estimate all of them. For example, for some models, the most complex model can be fit, and results from sub-models can be derived at no extra cost. For example, if a Cubist model is created with an ensemble size of 50, we can get predictions from the same model for sizes 1 - 49 at negligible computational cost. Additionally, racing methods [@kuhn2014futility] can conduct interim analyses during grid search and remove tuning parameter combinations that are unlikely to be chosen as the best results. This can enable users to quickly screen a large number of models and pre-processing methods.
 
 Finally, grid search had been considered inefficient because of the assumption that regular (i.e., full factorial) grids were used. If we evaluated $L$ values of each of $M$ tuning parameters, the full factorial set of $L^M$ combinations can become very large. This is no surprise to most CMC statisticians and engineers. However, as previously mentioned, the better design choices for grid search are space-filling designs. It is difficult to quantify the positive impact these designs have had on optimizing models, both in terms of efficiency and efficacy. @fig-sfd shows an example Audze-Eglais design from @husslage2011space for the two Cubist tuning parameters and 25 candidate points. 
 
@@ -661,11 +661,16 @@ all_pred %>%
 It is a common situation when multiple tuning parameter combinations have approximately the same level of performance. Likewise, it is rare that a single type of model completely outclasses the others. 
 :::
 
+TODO model selection and finalization
+
+TODO interpretation
+
+
+As an alternative to choosing a single, final model, a _stacking ensemble_ could be used to selectively blend all of our existing models (and pre-processing methods) into a single model fit. These models can dynamically choose which methods to include or exclude in a way that maximizes performance [@breiman1996stacked;@smyth1999linearly]. 
 
 ::: {.callout-important}
 ## **WTF**
-Ensembles are only for minimal gains with large training sets. 
-
+Stacking is worth trying if the training set is large. In these situations, it typically yields ensembles with slightly better results. Its importance has been inflated due to success in machine learning competitions. 
 :::
 
 
