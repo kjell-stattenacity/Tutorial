@@ -132,7 +132,7 @@ To illustrate this more clearly, let's examine the relationship among wavenumber
 #| label: fig-lagged-spectra
 #| echo: false
 #| cache: true
-#| out-width: "80%"
+#| out-width: "60%"
 #| fig-align: center
 #| fig-cap: "The correlation between the original intensities and lagged intensities for the first sample.  As wavenumbers depart, the correlation of the intensities decreases."
 
@@ -160,7 +160,7 @@ In addition to understanding the predictors, we should also understand character
 ```{r}
 #| label: fig-concentration
 #| echo: false
-#| out-width: "80%"
+#| out-width: "60%"
 #| fig-align: center
 #| fig-cap: "The distribution of drug product concentration across samples."
 
@@ -173,6 +173,26 @@ ggplot(data_wide, aes(x = concentration)) +
   ) +
   ylab("Frequency") +
   xlab("Drug Product Concentration (mg/mL)")
+```
+
+```{r}
+#| label: fig-pca-plot
+#| echo: false
+#| out-width: "80%"
+#| fig-align: center
+#| fig-cap: "PCA plots for each pre-processing method."
+
+all_pca_data %>% 
+  mutate(
+    PC1 = ifelse(grepl("1, 2", Pre), -PC1, PC1),
+    PC2 = ifelse(grepl("1, 2", Pre), -PC2, PC2)
+  ) %>% 
+  ggplot(aes(PC1, PC2)) + 
+  geom_vline(xintercept = 0, col = "green", lty = 2) +
+  geom_hline(yintercept = 0, col = "green", lty = 2) +
+  geom_point(cex = 1.2, alpha = 1 / 2) + 
+  facet_wrap(~ Pre, ncol = 3) + 
+  coord_obs_pred()
 ```
 
 
@@ -434,43 +454,28 @@ An alternate tool called Bayesian optimization was used to optimize the support 
 #| include: false
 
 models <- c( "Partial Least Squares", "Random Forest", "Cubist", "Support Vector Machine")
-preproc <- c("No Pre-Processing", "(1, 2, 15)", "(2, 2, 15)", "(1, 2, 49)")
+preproc <- c("No Pre-Processing", "(1, 2, 15)", "(2, 2, 15)", "(1, 2, 49)", "(2, 2, 49)")
 
 best_pls <- 
-  all_pls_rmse %>% 
+  all_pls_metrics %>% 
+  filter(.metric == "rmse") %>% 
   slice_min(mean, by = c(Pre)) %>% 
   arrange(mean)
 
 best_rf <- 
-  all_rf_rmse %>% 
+  all_rf_metrics %>% 
+  filter(.metric == "rmse") %>% 
   slice_min(mean, by = c(Pre)) %>% 
   arrange(mean)
 
 svm_rmse <- 
-  all_metrics %>% 
+  all_rmse %>% 
   filter(Model == "Support Vector Machine") %>% 
   mutate(
     num_iter = ifelse(grepl("Prep", .config), 0, gsub("Iter", "", .config)),
     num_iter = as.numeric(num_iter)
   ) %>% 
   slice_min(RMSE, by = c(Pre, num_iter))
-
-best_configs <- 
-  all_metrics %>% 
-  slice_min(RMSE, by = c(Model, Pre)) %>% 
-  mutate(Pre = factor(Pre, levels = preproc))
-
-best_pred <- 
-  all_pred %>% 
-  inner_join(
-    best_configs %>% select(Model, Pre, .config),
-    by = c("Model", "Pre", ".config") 
-  ) %>% 
-  mutate(
-    Pre = factor(Pre, levels = preproc),
-    Model = factor(Model, levels = models),
-    .resid = concentration - .pred
-  )
 
 ```
 
@@ -484,10 +489,11 @@ First, let's examine the PLS and RF model results. Each optimized a single model
 #| fig-width: 7.5
 #| fig-cap: "The tuning parameter profiles for partial least squares and random forest."
 
-rmse_rng <- extendrange(all_metrics$RMSE)
+rmse_rng <- extendrange(all_rmse$RMSE)
 
 pls_plot <- 
-  all_pls_rmse %>% 
+  all_pls_metrics %>% 
+  filter(.metric == "rmse") %>% 
   ggplot(aes(num_comp, mean, col = Pre, pch = Pre)) + 
   geom_line() +
   geom_point() + 
@@ -497,7 +503,8 @@ pls_plot <-
   scale_color_brewer(palette = "Set2")
 
 rf_plot <- 
-  all_rf_rmse %>% 
+  all_rf_metrics %>% 
+  filter(.metric == "rmse") %>% 
   ggplot(aes(prop, mean, col = Pre, pch = Pre)) + 
   geom_line() +
   geom_point() + 
@@ -513,7 +520,25 @@ pls_plot + rf_plot +
 
 @fig-pls-rf-tune-profiles (right) displays the tuning parameter profile for the RF model.  We can see from this figure that as the value of the $m_{try}$ is fairly irrelevant so long as very fewer predictors are randomly sampled.  Also, the predictor set with the best RMSE is the same as the set identified using PLS.  However, the optimal RF model (RMSE = `r format(min(best_rf$mean), digits = 3)`) performs poorly compared to the optimal PLS model (RMSE = `r format(min(best_pls$mean), digits = 3)`).  
 
-The svm search...
+```{r}
+#| label: fig-svm-search
+#| echo: false
+#| warning: false
+#| fig-height: 4
+#| fig-cap: "Progress of Bayesian optimization for the SVM parameters.Iteration zero reflects the best candidate value from the intial grid search."
+
+all_svm_metrics %>% 
+  filter(.metric == "rmse") %>% 
+  slice_min(mean, by = c(Pre, .iter)) %>% 
+  ggplot(aes(.iter, mean, col = Pre, group = Pre)) + 
+  geom_point() + 
+  geom_line() + 
+  theme(legend.position = "top") +
+  scale_color_brewer(palette = "Set2") +
+    labs(y = "Resampled RMSE", x = "Search Iteration") 
+
+```
+
 
 The next step in the process is to select which predictor set, model, and tuning parameter settings are optimal for the data.  @fig-all-optimal-models displays the cross-validated RMSE values corresponding to each model's optimal tuning parameter settings.  There are several important findings that this figure reveals.  First, the SVM and RF models have improved predictive performance when the SG pre-processing is applied.  On the other hand, the PLS and Cubist models are not substantially improved with this pre-processing.  In fact, the performance can be made worse if second-order differentiation is applied.
 
@@ -524,7 +549,7 @@ The next step in the process is to select which predictor set, model, and tuning
 #| fig-height: 4
 #| fig-cap: "Cross-validation predictive performance using the optimal tuning parameter settings for each predictor set and model."
 
-best_configs %>% 
+all_best %>% 
   ggplot(aes(Pre, RMSE, col = Model, group = Model, pch = Model)) + 
   geom_point(cex = 2) +
   geom_line() + 
@@ -544,11 +569,11 @@ Across the five pre-processing sets and four models, let's compare the the obser
 #| fig-width: 7.5
 #| fig-cap: "Comparison of observed versus hold-out predicted values from cross-validation for the optimal tuning parameter settings for three models and three pre-processing combinations.  One challenging sample to predict is highlighted in red."
 
-best_pred %>% 
+all_pred %>% 
   ggplot(aes(concentration, .pred)) + 
   geom_abline(col = "green") +
   geom_point(alpha = 1 / 2) + 
-  facet_grid(Pre ~ Model) +
+  facet_grid(Model ~ Pre) +
   labs(x = "Observed DP Concentration", y = "Predicted DP Concentration") 
 ```
 
