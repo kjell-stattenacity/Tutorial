@@ -38,7 +38,7 @@ options(pillar.advice = FALSE, pillar.min_title_chars = Inf)
 
 # ------------------------------------------------------------------------------
 
-knitr::opts_chunk$set(fig.path = "figures/")
+knitr::opts_chunk$set(fig.path = "figures/", fig.pos = "t!")
 
 
 # ------------------------------------------------------------------------------
@@ -51,15 +51,15 @@ load("RData/all_results.RData")
 
 (This is a preprint of an article submitted to a _Pharmaceutical Statistics_ special nonclinical tutorial edition)
 
-## Introduction
+# Introduction
 
-It feels like machine learning is everywhere. Within data analysis circles, almost every discussion involves how artificial intelligence and machine learning can change our lives. ChatGPT has turned up the noise in the conversation, and many people believe it should be applied. TODO more here
+It feels like machine learning is everywhere. Within data analysis circles, almost every discussion involves how artificial intelligence and machine learning can change our lives. ChatGPT ([`https://chat.openai.com`](https://chat.openai.com/)) and similar applications have turned up the noise in the conversation, and many people believe it should be applied. TODO more here
 
 This tutorial assumes that the reader has had some exposure to machine learning (a.k.a. predictive modeling or statistical learning) and related techniques such as resampling. If not, we suggest @HastieEtAl2017 for technical information and @kuhn2013applied for practical descriptions focused on applying these methods. For deep learning methods, @goodfellow2016deep and @charu2018neural are good introductions.
 
 This tutorial discusses more realistic approaches to using machine learning in preclinical applications, specifically Chemistry, Manufacturing, and Control (CMC) applications. The structure takes a relatively ordinary experimental problem (predicting drug concentration using spectroscopy) to frame a discussion about what machine learning can, can't do, and probably should do. The idea is that most machine learning training materials are not holistic examinations of how the process actually works. While describing our analysis, we will highlight "what they forgot to tell you" about these tools. 
 
-As an example, it might make sense to discuss what the term "machine learning" actually means and under what circumstances it is appropriate. Historically, it usually connotes a specific type of black-block model such as a neural network or support vector machine. This leads us to our our first _what they forgot_ (WTF):
+For example, it might make sense to discuss what the term "machine learning" means and under what circumstances it is appropriate. Historically, it usually connotes a specific type of black-block model, such as a neural network or support vector machine. This leads us to our first _what they forgot_ (WTF):
 
 ::: {.callout-important}
 ## **WTF**
@@ -67,7 +67,7 @@ As an example, it might make sense to discuss what the term "machine learning" a
 The idea of a "machine learning model" is more defined by the project's goal than the type of model. 
 :::
 
-It is difficult to argue that ML models focus on making the most accurate prediction of a new sample based on historical data. From that point of view, it could be any sufficiently complex model that performs sufficiently well. For example, a linear regression could fit this definition by including appropriate interactions or nonlinear terms, such as spline basis expansions. The models most representative of the current zeitgeist are sophisticaled and impenetrable methods such as neural networks and boosted trees. However...
+It is difficult to argue that ML models focus on making the most accurate prediction of a new sample based on historical data. From that point of view, any sufficiently complex model that performs sufficiently well. For example, a linear regression could fit this definition by including appropriate interactions or nonlinear terms, such as spline basis expansions. The models most representative of the current zeitgeist are sophisticated and impenetrable methods such as neural networks and boosted trees. However...
 
 ::: {.callout-important}
 ## **WTF**
@@ -91,15 +91,15 @@ Unless you are analyzing images, it is exceedingly unlikely that a deep-learning
 
 There is considerable anecdotal evidence that highly complex neural networks may not perform well for reasonably sized tabular data sets. This is currently being examined more formally in the literature [@kadra2021regularization;@gorishniy2021revisiting;@Borisov2022;@SHWARTZZIV202284]. Experimental data in preclinical applications can often exhibit multicollinearity between predictors and data measured with error. For novel data sets, we often do not know which predictors have a relationship with the outcome, increasing the possibility that some irrelevant predictors will be used to fit the model. In general, neural networks do not thrive in these environments [@kuhn2013applied]. 
 
-Simply put, deep learning models can be effective in specific scenarios but are not appropriate in many other situations. 
+Simply put, deep learning models can be effective in specific scenarios but are inappropriate in many other situations. 
 
-In this tutorial, we will discuss the process of constructing ML models for a specific data set. This process starts with understanding the available data's predictors and response. After this initial understanding, we must then determine how to spend the data for the model-building process. Specifically, some data will need to be used to learn the generalizable characteristics that relate the predictors with the response (i.e., the training set). And other data will need to be used to assess how well the model predicts new data (i.e., the test set). After splitting the data, the predictors and/or the response may need to be preprocessed prior to modeling to enable better models to extract the predictive signal. After preprocessing, we can determine which types of predictive models to build. Each model has one or more parameters that determine how predictors are related to the response. In general, we do not know a priori which values of the tuning parameters are best. Therefore, we search a range of values to identify an optimal value. After identifying an optimal model, this model is then evaluated on the test data to determine if the model can be trusted to predict new, yet-to-be-seen samples reliably.
+In this tutorial, we will discuss the process of constructing ML models for a specific data set. This process starts with understanding the available data's predictors and responses. After this initial understanding, we must then determine how to spend the data for the model-building process. Specifically, some data will need to be used to learn the generalizable characteristics that relate the predictors with the response (i.e., the training set). And other data will need to be used to assess how well the model predicts new data (i.e., the test set). After splitting the data, the predictors and/or the response may need to be preprocessed prior to modeling to enable better models to extract the predictive signal. After preprocessing, we can determine which types of predictive models to build. Each model has one or more parameters that determine how predictors are related to the response. In general, we do not know a priori which values of the tuning parameters are best. Therefore, we search a range of values to identify an optimal value. After identifying an optimal model, this model is then evaluated on the test data to determine if the model can be trusted to predict new yet-to-be-seen samples reliably.
 
-Let's look a specific CMC application to further facilitate the discussion.  
+Let's look at a specific CMC application to facilitate the discussion further.  
 
-## Experimental setting
+# Experimental setting
 
-The manufacturing process of a biological drug is complex and requires careful monitoring to ensure that the cells are efficiently creating the drug product. This process can be very challenging to systematically control since the incubation process can take many days, and cells are complex biological entities that are affected by slight changes to environmental conditions. To ensure that the bioreactor conditions are conducive to the cells producing product, key attributes are measured by sampling the contents of the bioreactor daily. If attributes are not in an acceptable range, then steps must be taken to alter the conditions of the bioreactor. Generally, the sooner the conditions can be adjusted, the better the quantity and quality of the final drug product. Measuring the attributes takes time. Therefore, there is usually a lag between the attribute measurements and the corresponding adjustment. This lag can lead to less and lower-quality product.
+The manufacturing process of a biological drug is complex and requires careful monitoring to ensure that the cells are efficiently creating the drug product. This process can be very challenging to systematically control since the incubation process can take many days, and cells are complex biological entities that are affected by slight changes in environmental conditions. To ensure that the bioreactor conditions are conducive to the cells producing product, key attributes are measured by sampling the contents of the bioreactor daily. If attributes are not in an acceptable range, then steps must be taken to alter the conditions of the bioreactor. Generally, the sooner the conditions can be adjusted, the better the quantity and quality of the final drug product. Measuring the attributes takes time. Therefore, there is usually a lag between the attribute measurements and the corresponding adjustment. This lag can lead to less and lower-quality products.
 
 Raman spectroscopy is a tool that can measure chemical characteristics (i.e., a chemical fingerprint) of samples in real-time [@jesus2020raman;@esmonde2022role;@silge2022trends]. Using the spectra in a predictive model of the characteristics of interest would enable real-time knowledge of and corresponding adjustments to the bioreactor, thus generating higher quality, larger volume drug product.
 
@@ -115,7 +115,7 @@ The first step in any modeling process is to understand the available data.
 The only way to be comfortable with your data is to never look at them.  
 :::
 
-In this application, there is one sample from each of 60 bioreactors.  Raman spectroscopy has been applied to each sample, and the drug product concentration has been measured.  @fig-raman-spectra displays the original Raman spectra.  From this figure, we can see that there is an initial downward trend towards the middle of the wavenumbers, then an upward trend towards the higher wavenumbers.  The intensities are not randomly scattered.  Instead, there is a relationship across wavenumbers with intensity.  This relationship indicates that wavenumber intensities are correlated with each other.  In fact, the correlation between the majority of adjacent wavenumbers is greater than 0.99.  
+In this application, there is one sample from each of the 60 bioreactors.  Raman spectroscopy has been applied to each sample, and the drug product concentration has been measured.  @fig-raman-spectra displays the original Raman spectra.  From this figure, we can see that there is an initial downward trend towards the middle of the wavenumbers, then an upward trend towards the higher wavenumbers.  The intensities are not randomly scattered.  Instead, there is a relationship across wavenumbers with intensity.  This relationship indicates that wavenumber intensities are correlated with each other.  In fact, the correlation between the majority of adjacent wavenumbers is greater than 0.99.  
 
 ```{r}
 #| label: fig-raman-spectra
@@ -130,7 +130,7 @@ ggplot(data_long, aes(x = wave_number, y = intensity, group = sample_id)) +
   labs(x = bquote('Wavenumber (' * cm ^ -1 * ')'), y = "Intensity")
 ```
 
-To illustrate this more clearly, let's examine the relationship among wavenumber measurements for the first sample.  For the first sample, the first 3000 lags are created.  To create a lag, the data is shifted by a specified number of rows to create a new variable.  For example, to create the first lag, the wavenumber measurements are shifted over by one wavenumber.  To create the second lag, the measurements are shifed by two wavenumberes, and so on.  @fig-lagged-spectra illustrates the correlation between each subquent lag for the first 1000 lags.  Clearly, close wavenumbers have high correlation, whereas far wavenumbers have low correlation.  As we will see, understanding this characteristic will turn out to be very important when making decisions about how to pre-process the data prior to modeling and which models to train. 
+To illustrate this more clearly, let's examine the relationship among wavenumber measurements for the first sample.  For the first sample, the first 3000 lags are created.  To create a lag, the data is shifted by a specified number of rows to create a new variable.  For example, to create the first lag, the wavenumber measurements are shifted over by one wavenumber.  To create the second lag, the measurements are shifted by two wavenumberes, and so on.  @fig-lagged-spectra illustrates the correlation between each subsequent lag for the first 1000 lags.  Clearly, close wavenumbers have a high correlation, whereas far wavenumbers have a low correlation.  As we will see, understanding this characteristic will be very important when deciding how to pre-process the data prior to modeling and which models to train. 
 
 ```{r}
 #| label: fig-lagged-spectra
@@ -160,25 +160,9 @@ ggplot(for_cor_fig, aes(x = Lag, y = cor)) +
 ```
 
 
-```{r}
-#| label: pca-info
-#| include: false
-pca_sample <- 
-  all_pca_data %>% 
-  slice_max(abs(PC1), by = c(Pre)) %>% 
-  distinct(sample_id) %>% 
-  pluck("sample_id")
+With such a large dimensional data set, it is difficult to investigate specific predictors visually. Additionally, the high degree of between-predictor correlations further increases the ability to investigate the data. In @sec-pre-processing, we'll look at specific data points using dimension reduction tools under different types of signal processing regimes. 
 
-pca_cap <- 
-  paste0(
-    "Two-component PCA plots for each pre-processing method. One particular sample (#", 
-    pca_sample, ") has extreme values for the first principal compoent across all ",
-    "pre-processing methods.")
-```
-
-With such a large dimensional data set, it is difficult to investigate specific predictors visually. Additionally, the high degree of between-predictor correlations further increases the ability to investigate the data. In @sec-pre-processing, we'll look at specific data points using dimension reduction tools under different types of signal processing regiemes. 
-
-In addition to understanding the predictors, we should also understand characteristics of the response.  Examining the response distribution can help determine if a transformation may be necessary or if there are samples that are unusual with respect to the majority of the data.  @fig-concentration presents the histogram drug product concentration across the samples.  For this data, the distribution is approximately symmetric and has a range of `r min(data_wide$concentration)` to `r max(data_wide$concentration)`.  Based on this figure, a transformation does not appear to be necessary, and there are no samples that are unusual.
+In addition to understanding the predictors, we should also understand the characteristics of the response.  Examining the response distribution can help determine if a transformation may be necessary or if there are samples that are unusual with respect to the majority of the data.  @fig-concentration presents the histogram of drug product concentration across the samples.  For this data, the distribution is approximately symmetric and has a range of `r min(data_wide$concentration)` to `r max(data_wide$concentration)`.  Based on this figure, a transformation does not appear necessary, and there are no unusual samples.
 
 ```{r}
 #| label: fig-concentration
@@ -198,7 +182,7 @@ ggplot(data_wide, aes(x = concentration)) +
   xlab("Drug Product Concentration (mg/mL)")
 ```
 
-## Data Spending
+# Data Spending
 
 The primary objective of predictive modeling is to use the existing data to develop a model that predicts new samples as accurately as possible.  To achieve this objective, a process must be implemented that avoids overfitting to the existing data [@kuhn2013applied; @Hawkins2004p1].  An overfit model is one that accurately predicts the response for the data on which the model was trained but does not accurately predict new data.  To avoid overfitting, we must construct a model-building process that mimics the prediction process for new samples.  One way to do this would be to split the data into training and test sets.  A model could be constructed with the training set, then predictive performance could be evaluated with the test set. 
 
@@ -247,18 +231,18 @@ if (knitr::is_html_output()) {
 
 For the example presented here, a stratified random approach will be used to split the data into a training (75%) and a test (25%) set.  The distribution of the response will be used as the stratification variable such that an equal proportion of samples will be randomly selected within each quartile of the distribution.  
 
-## Pre-processing {#sec-pre-processing}
+# Pre-processing {#sec-pre-processing}
 
-The predictors and response, in their original form, are usually not in the best form for enabling models to find an optimal predictive relationship.  The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors.  Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics.  However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present.  As a simple example, consider a predictor that has three categories: low, medium, and high.  The information, in this form, cannot be ingested by most models.  Instead, the information needs to be converted into either an ordinal-scaled predictor or two binary variables.  Missing data also wreaks havoc on predictive models because the models require non-missing information.  Therefore, appropriate pre-processing steps must be taken before model training.
+The predictors and responses, in their original form, are usually not in the best form for enabling models to find an optimal predictive relationship.  The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors.  Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics.  However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present.  As a simple example, consider a predictor with three categories: low, medium, and high.  The information, in this form, cannot be ingested by most models.  Instead, the information must be converted into either an ordinal-scaled predictor or two binary variables.  Missing data also wreaks havoc on predictive models because the models require non-missing information.  Therefore, appropriate pre-processing steps must be taken before model training.
 
 ::: {.callout-important}
 ## **WTF**
 
 The stereotypical concept of a model is often confined to the supervised operation of estimating model parameters (e.g., slope and intercepts in linear regression, etc.). 
 
-However, the overall modeling process includes any serious data analysis steps before or after the  model fit. This can include steps such as PCA feature extraction, imputation, _post hoc_ calibration, etc. 
+However, the overall modeling process includes any serious data analysis steps before or after the model fit. This can include steps such as principal component analysis (PCA) feature extraction [@Abdi2010p3532;@Massy1965p234], imputation [@hasan2021missing], and _post hoc_ calibration. 
 
-It is very important to think of each of these estimation procedures as part of "the model". 
+It is very important to consider each of these estimation procedures as part of "the model". 
 :::
 
 
@@ -268,7 +252,7 @@ For example, as shown previously, there is a high degree of correlation between 
 
 There are a variety of tools to compensate for this issue: 
 
-* Use a feature extraction method, such as principal component analysis, to generate alternate versions of the predictors that capture the same information but are uncorrelated. 
+* Use a feature extraction method, such as PCA, to generate alternate versions of the predictors that capture the same information but are uncorrelated. 
 * Focus on models that utilize regularization to reduce the effect of the correlations, such as ridge regression [@hoerl1970ridge]. 
 * Exploit the autoregressive nature of the spectra by providing the model with the differences between consecutive predictors (i.e., first- or second-derivatives).
 
@@ -277,7 +261,7 @@ In practice, different models have affinities for different types of predictor s
 ::: {.callout-important}
 ## **WTF**
 
-The operations that you apply to the predictors before the model are at least as important as which supervised model that you use. _Feature engineering_ [@fes] is the process of representing the predictor data in a way that makes the model have to work the least to be effective.
+The operations that you apply to the predictors before the model are at least as important as which supervised model you use. _Feature engineering_ [@fes] is the process of representing the predictor data in a way that makes the model have to work the least to be effective.
 :::
 
 Another issue with these data is _baseline drift_. Recall from @fig-raman-spectra that the intensity values across samples have an initial downward trend towards about wavenumber 2500, then begin to trend upward.  In spectroscopy data, deviations in intensity from zero are commonly referred to as baseline drift, typically stemming from factors such as measurement system noise, interference, or fluorescence [@rinnan2009review]. Importantly, these deviations do not relate to the sample's chemical composition; they are a systematic nuisance. 
@@ -342,7 +326,7 @@ ggplot(orig_data,
 ```
 
 
-Another source of noise for these data is apparent in the variation of the intensity measurements across wavelengths within a spectrum.  This is illustrated by the jagged profile illustrated in the "Original" and "Corrected" panels of Figure @fig-profile-baseline-poly.  Smoothing splines and moving averages are two commonly used tools for reducing this type of noise.  The moving average is computed at each point by averaging a specified number of values about that point.  For example, the moving average of size 10 would replace each point with the average of the ten points before and after the selected point.  The original curve becomes smoother as the number of points averaged together becomes larger.  Therefore, we need to be careful with the number of points chosen for the smoothing process.  Too few points may not remove enough noise while too many may remove important signals.
+Another source of noise for these data is apparent in the variation of the intensity measurements across wavelengths within a spectrum.  This is illustrated by the jagged profile illustrated in the "Original" and "Corrected" panels of Figure @fig-profile-baseline-poly.  Smoothing splines and moving averages are two commonly used tools for reducing this type of noise.  The moving average is computed at each point by averaging a specified number of values about that point.  For example, the moving average of size 10 would replace each point with the average of the ten points before and after the selected point.  The original curve becomes smoother as the number of points averaged together becomes larger.  Therefore, we must be careful with the number of points chosen for the smoothing process.  Too few points may not remove enough noise, while too many may remove important signals.
 
 The Savitzky-Golay procedure [@savitzky1964smoothing;@stevens2022] is designed to remove spurious signals by simultaneously smoothing the data while also centering the overall signal and dampening variability.  The procedure is governed by the order of differentiation, degree of polynomial, and window size.  @fig-sg-filtering compares the impact of this procedure for differentiation order of 1 or 2, polynomial order of 2, and a small (15) or large (49) window size.
 
@@ -377,7 +361,25 @@ processed_data %>%
 
 @fig-lagged-spectra-across-sets displays the correlation across the first 1000 wavenumbers for the original data as well as each of the selected Savitzky-Golay transformations. The effect of differentiation and window size on the correlation across the transformed intensities is clear.  When comparing first-order differentiation to second-order differentiation, second-order differentiation more rapidly reduces correlation among close wavenumbers up to about the nearest 100 wavenumbers.  Increasing the smoothing window also helps smooth the correlation profiles but does not further reduce correlation. We will examine the impact of each of these different smoothing parameter selections on the model performance in the following sections.
 
-For these data, principal component analysis can be conducted on the training set predictors (after centering and scaling the predictors). This can help us understand if there are any unwanted systematic effects in the data (such as differences in reagents, instruments, etc.). @fig-pca-plot shows the results using two components. These components accounted for between 65%-95% of the predictor information, with the exception of the (2, 2, 15) set, which only captured about 45% of the information. With the exception of a single sample, there are no obvious patterns in the results to give us pause (such as clustering). That odd sample, number `r pca_sample`, is the same data point in @fig-raman-spectra with relatively low intensity compared to the other spectra. It is unclear how this would affect the results (if at all), so it was retained in the data set. Later analyses will examine whether this sample is associated with  largers residuals. 
+```{r}
+#| label: pca-info
+#| include: false
+pca_sample <- 
+  all_pca_data %>% 
+  slice_max(abs(PC1), by = c(Pre)) %>% 
+  distinct(sample_id) %>% 
+  pluck("sample_id")
+
+pca_cap <- 
+  paste0(
+    "Two-component PCA plots for each pre-processing method. One particular sample (#", 
+    pca_sample, ") has extreme values for the first principal compoent across all ",
+    "pre-processing methods.")
+```
+
+For these data, principal component analysis can be conducted on the training set predictors (after centering and scaling the predictors). This can help us understand if there are any unwanted systematic effects in the data (such as differences in reagents, instruments, etc.). @fig-pca-plot shows the results using two components. These components accounted for between 65%-95% of the predictor information, with the exception of the (2, 2, 15) set, which only captured about 45% of the information. With the exception of a single sample, there are no obvious patterns in the results to give us pause (such as clustering). That odd sample, number `r pca_sample`, is the same data point in @fig-raman-spectra with relatively low intensity compared to the other spectra. It is unclear how this would affect the results (if at all), so it was retained in the data set. Later analyses will examine whether this sample is associated with larger residuals. 
+
+
 
 ```{r}
 #| label: fig-pca-plot
@@ -399,7 +401,7 @@ all_pca_data %>%
   coord_obs_pred()
 ```
 
-## Machine Learning Models {#sec-modeling}
+# Machine Learning Models {#sec-modeling}
 
 Over the past half-century, the number and types of models for relating a set of predictors to a response has rapidly grown.  Improvements in computational power and mathematical complexity have been the primary drivers of this increase.  Traditionally, model complexity is generally tied to the number of parameters of a model.  As the number of model parameters increases, so does the ability of a model to adapt and morph to the relationship between predictors and the response.  For example, the basic partial least squares model has one tuning parameter and is effective at finding a linear relationship between predictors and the response.  However, this method is ineffective at finding non-linear relationships.  In contrast, consider a simple single-layer, feed-forward neural network.  This model can easily have many more parameters than the number of predictors.  For the example data, the number of predictors already exceeds the number of samples.  Therefore, even the simplest of neural network models can overfit the available data without appropriate precautions.  
 
@@ -422,12 +424,12 @@ In this manufacturing example, the response is continuous, and the metric of RMS
 
 The performance metric that you choose is important; poor choices can guide you to a "correct" answer that might be inappropriate. 
 
-For example, $R^2$ is a measure of correlation but not accuracy. Optimzing it can yeild models that are inaccurate at the high and low regions of the outcome distirbution. 
+For example, $R^2$ is a measure of correlation but not accuracy. Optimizing it can yield models that are inaccurate at the high and low regions of the outcome distribution. 
 :::
 
 While there are many models to choose from, we will compare four modeling techniques for this data:  partial least squares (PLS), random forest (RF), Cubist, and support vector machines (SVM).  These models were selected to illustrate a range of types of models.  We will now provide a high-level explanation of each of these models.  Please see the references to learn more.
 
-### Partial Least Sqaures
+### Partial Least Squares
 
 Spectroscopy data has traditionally been modeled using PLS [@htet2021pls;@esmonde2017raman].  PLS is a logical technique to use for this type of data because it naturally handles highly correlated predictors.  This model seeks to find linear combinations of the original predictors that have an optimal correlation with the response by using as few linear combinations as possible [@wold2001pls].  Specifically, PLS finds linear combinations that summarize variability across the predictors while simultaneously optimizing their correlation with the response.  The primary tuning parameter for PLS is the number of linear combinations, or latent variables, to retain.
 
@@ -437,17 +439,18 @@ Random forest is a recursive partitioning that is built on an ensemble of trees 
 
 
 ### Cubist
+
 The Cubist model is also constructed from an initial ensemble of trees but in a very different, more complex way than RF [@quinlan1987simplifying]. It uses a model tree rather than a partitioning tree as its foundation. The primary difference between a partitioning tree and a model tree is that a model tree constructs a linear model in each terminal node. The paths through the trees to the terminal node are _rules_, and these rules are further pruned and/or simplified. 
 
 Cubist creates an ensemble of individual rule-based models in a manner that is similar, but not the same as, boosting [@kuhn2013applied]. Once the ensemble has been completed, predictions from the samples’ closest neighbors in the training set can further adjust the model predictions [@Quinlan1993p1150].  Cubist has two tuning parameters: the number of committees and the number of nearest neighbors.
 
 ### Support vector machines
 
-Support vector machines is a modeling technique that uncovers the relationship between the predictors and the response using samples that lie outside of a conceptual margin (a boundary about the optimal relationship) [@drucker1996support;@ullah2018raman]. Several nonlinear versions of SVMs exist; the one implemented in this analysis uses a radial basis function (RBF). For the radial-basis SVM, the number of samples allowed to be outside of the margin is controlled by the cost parameter, and the RBF dispersion parameter controls the surface's flexibility. Therefore, the radial basis SVM has the flexibility to identify a non-linear relationship between the predictors and the response.
+Support vector machines are a modeling technique that uncovers the relationship between the predictors and the response using samples that lie outside of a conceptual margin (a boundary about the optimal relationship) [@drucker1996support;@ullah2018raman]. Several nonlinear versions of SVMs exist; the one implemented in this analysis uses a radial basis function (RBF). For the radial-basis SVM, the number of samples allowed to be outside of the margin is controlled by the cost parameter, and the RBF dispersion parameter controls the surface's flexibility. Therefore, the radial basis SVM has the flexibility to identify a non-linear relationship between the predictors and the response.
 
 SVMs are the most difficult to tune out of the four models described here. The two tuning parameters tend to exhibit traditional interaction effects so that there can be a small region of good performance within a larger area of unsuitable models; see, for example, [Section 14.1](https://www.tmwr.org/iterative-search#svm) of @tmwr.
 
-## Modeling Strategy
+# Modeling Strategy
 
 For each model, a set of 25 tuning parameter combinations are evaluated. For PLS and random forest, we'll only tune a single parameter (the number of PLS components and $m_{try}$, respectively). For support vector and Cubist models, a space-filling design [@joseph2016space] is used to create two-dimensional grids of the parameter space for each model. These grids are created using Latin hypercube designs that fill the rectangular parameter space. They often use an additional criterion to reduce the chances that any of the tuning parameter combinations are too close (i.e., redundant). The _modeling process_ has 3-4 parameters: 1-2 from the models themselves and two from the pre-processing (i.e., differentiation order and the smoothing window size). 
 
@@ -459,11 +462,11 @@ For each tuning parameter combination, 5 repeats of 10-fold cross-validation are
 Despite the literature, optimizing hyper-parameters using grid search is effective and can be very efficient using advanced (but easy to use) computational and statistical methods
 :::
 
-One computational tool for grid search is parallel processing. None of the 1,250 models estimated in the grid search depend on the other and, as such, can be executed simultaneously on different computer CPU cores. Software can seamlessly facilitate this and it is not uncommon to see 5-fold reductions in the computational time using this method [@tmwr]. 
+One computational tool for grid search is parallel processing. None of the 1,250 models estimated in the grid search depend on the other and, as such, can be executed simultaneously on different computer CPU cores. Software can seamlessly facilitate this, and it is not uncommon to see at least 5-fold reductions in the computational time using this method [@tmwr]. 
 
-Also, there are statistical methods to evaluate 25 models without having to estimate all of them. For example, for some models, the most complex model can be fit, and results from sub-models can be derived at no extra cost. For example, if a Cubist model is created with an ensemble size of 50, we can get predictions from the same model for sizes 1 - 49 at negligible computational cost. Additionally, racing methods [@kuhn2014futility] can conduct interim analyses during grid search and remove tuning parameter combinations that are unlikely to be chosen as the best results. This can enable users to quickly screen a large number of models and pre-processing methods.
+Also, there are statistical methods to evaluate 25 models without having to estimate all of them. For example, for some models, the most complex model can be fit, and results from sub-models can be derived at no extra cost. For example, if a Cubist model is created with an ensemble size of 50, we can get predictions from the same model for sizes 1 - 49 at negligible computational cost. Additionally, racing methods [@kuhn2014futility] can conduct interim analyses during grid search and remove tuning parameter combinations that are unlikely to be chosen as the best results. This can enable users to screen a large number of models and pre-processing methods quickly.
 
-Finally, grid search had been considered inefficient because of the assumption that regular (i.e., full factorial) grids were used. If we evaluated $L$ values of each of $M$ tuning parameters, the full factorial set of $L^M$ combinations can become very large. This is no surprise to most CMC statisticians and engineers. However, as previously mentioned, the better design choices for grid search are space-filling designs. It is difficult to quantify the positive impact these designs have had on optimizing models, both in terms of efficiency and efficacy. @fig-sfd shows an example Audze-Eglais design from @husslage2011space for the two Cubist tuning parameters and 25 candidate points. 
+Finally, grid search had been considered inefficient because of the assumption that regular (i.e., full factorial) grids were used. If we evaluated $L$ values of each of $M$ tuning parameters, the full factorial set of $L^M$ combinations can become very large. This is no surprise to most CMC statisticians and engineers. However, as previously mentioned, the better design choices for grid search are space-filling designs. It is difficult to quantify the positive impact these designs have had on optimizing models in terms of efficiency and efficacy. @fig-sfd shows an example Audze-Eglais design from @husslage2011space for the two Cubist tuning parameters and 25 candidate points. 
 
 
 ```{r}
@@ -487,9 +490,9 @@ get_design(2, 25) %>%
 
 ```
 
-An alternate tool called Bayesian optimization [@gramacy2020surrogates] was used to optimize the support vector machine models. It starts with a small grid of results, in our case, a space-filling design with ten tuning parameter combinations. These initial results create a Gaussian Process model [@rasmussen2006gaussian] where the resampled RMSE values are the outcome and the SVM tuning parameters (cost and RBF dispersion) are used as predictors. The model then predicts the next tuning parameter combination to resample. Once those results are available, the process repeats. Fifteen iterations of this iterative optimization process were used to evaluate a total of 25 tuning parameter combinations for the SVM models. 
+An alternate tool called Bayesian optimization [@gramacy2020surrogates] was used to optimize the support vector machine models. It starts with a small grid of results, in our case, a space-filling design with ten tuning parameter combinations. These initial results create a Gaussian Process model [@rasmussen2006gaussian] where the resampled RMSE values are the outcome, and the SVM tuning parameters (cost and RBF dispersion) are used as predictors. The model then predicts the next tuning parameter combination to resample. Once those results are available, the process repeats. Fifteen iterations of this iterative optimization process were used to evaluate a total of 25 tuning parameter combinations for the SVM models. 
 
-## Model Tuning Results
+# Model Tuning Results
 
 ```{r}
 #| label: compute-best
@@ -521,7 +524,7 @@ svm_rmse <-
 
 ```
 
-First, let's examine the PLS and RF model results. Each optimized a single model parameter. @fig-pls-rf-tune-profiles (left) illustrates the tuning parameter profiles across the number of components that were evaluated for the original spectra as well as the different Savitzky-Golay pre-processed spectra.  RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed.  The model with the lowest RMSE uses the SG filter with parameterization of first order differentiation, second order polynomial, and a small window size (1, 2, 15), and `r best_pls$num_comp[best_pls$Pre == "(1, 2, 15)"]` components.
+First, let's examine the PLS and RF model results. Each optimized a single model parameter. @fig-pls-rf-tune-profiles (left) illustrates the tuning parameter profiles across the number of components evaluated for the original spectra and the different Savitzky-Golay pre-processed spectra.  RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed.  The model with the lowest RMSE uses the SG filter with parameterization of first-order differentiation, second-order polynomial, and a small window size (1, 2, 15), and `r best_pls$num_comp[best_pls$Pre == "(1, 2, 15)"]` components.
 
 ```{r}
 #| label: fig-pls-rf-tune-profiles
@@ -573,7 +576,7 @@ pls_plot + rf_plot +
   theme(legend.position = "top")
 ```
 
-@fig-pls-rf-tune-profiles (right) displays the tuning parameter profile for the RF model.  We can see from this figure that as the value of the $m_{try}$ is fairly irrelevant so long as a sufficiently large proportion of predictors are randomly sampled. The numerically best ranodm forest model used `r format(best_rf$mtry[1], big.mark = ",")` predictors with pre-processing strategy `r best_rf$Pre[1]`, although there is obviously a range of values with the same performance (as well as another pre-processor). 
+@fig-pls-rf-tune-profiles (right) displays the tuning parameter profile for the RF model.  We can see from this figure that as the value of the $m_{try}$ is fairly irrelevant so long as a sufficiently large proportion of predictors are randomly sampled. The numerically best random forest model used `r format(best_rf$mtry[1], big.mark = ",")` predictors with pre-processing strategy `r best_rf$Pre[1]`, although there is obviously a range of values with the same performance (as well as another pre-processor). 
 
 
 Also, the predictor set with the best RMSE is the same as the set identified using PLS.  However, the optimal RF model (RMSE = `r format(min(best_rf$mean), digits = 3)`) performs poorly compared to the optimal PLS model (RMSE = `r format(min(best_pls$mean), digits = 3)`).  
@@ -636,7 +639,7 @@ all_best %>%
   scale_fill_brewer(palette = "Dark2")
 ```
 
-Across the five pre-processing sets and four models, let's compare the the observed versus predicted values for the PLS, Cubist, and SVM models with the unprocessed and two variations of the SG pre-processed data (1, 2, 15 and 2, 2, 15).  @fig-obs-pred-cv-comparison highlights some interesting characteristics across the models and predictor sets.  First, we see that the SVM model cannot decipher the relationship between predictors and the response when the data is not pre-processed.  In fact, it is challenging for SVM models to find predictive signals when there are many correlated predictors in the data [REFS].  Next, one particular sample is challenging for the PLS model to fit when the predictors are not pre-processed or when there is some pre-processing (2, 2, 15).  For the Cubist model, this same sample is better predicted by the model with no pre-processing and less well predicted with either of the pre-processed data sets.  What this means is that the same pre-processing approach is rarely effective across all models.  Instead, many model types evaluated across a range of tuning parameters along with a variety of pre-processing conditions need to be evaluated in order to find the optimal model, 
+Across the five pre-processing sets and four models, let's compare the observed versus predicted values for the PLS, Cubist, and SVM models with the unprocessed and two variations of the SG pre-processed data (1, 2, 15, and 2, 2, 15).  @fig-obs-pred-cv-comparison highlights some interesting characteristics across the models and predictor sets.  First, we see that the SVM model cannot decipher the relationship between predictors and the response when the data is not pre-processed.  In fact, it is challenging for SVM models to find predictive signals when there are many correlated predictors in the data [REFS].  Next, one particular sample is challenging for the PLS model to fit when the predictors are not pre-processed or when there is some pre-processing (2, 2, 15).  For the Cubist model, this same sample is better predicted by the model with no pre-processing and less well predicted with either of the pre-processed data sets.  What this means is that the same pre-processing approach is rarely effective across all models.  Instead, many model types evaluated across a range of tuning parameters along with a variety of pre-processing conditions need to be evaluated in order to find the optimal model, 
 
 
 ```{r}
@@ -666,7 +669,7 @@ TODO model selection and finalization
 TODO interpretation
 
 
-As an alternative to choosing a single, final model, a _stacking ensemble_ could be used to selectively blend all of our existing models (and pre-processing methods) into a single model fit. These models can dynamically choose which methods to include or exclude in a way that maximizes performance [@breiman1996stacked;@smyth1999linearly]. 
+As an alternative to choosing a single, final model, a _stacking ensemble_ could be used to selectively blend all of our existing models (and pre-processing methods) into a single model fit. These models can dynamically choose which methods to include or exclude to maximize performance [@breiman1996stacked;@smyth1999linearly]. 
 
 ::: {.callout-important}
 ## **WTF**
@@ -674,11 +677,11 @@ Stacking is worth trying if the training set is large. In these situations, it t
 :::
 
 
-## Test Set Results
+# Test Set Results
 
 
 
-## Post-Modeling Activities
+# Post-Modeling Activities
 
 ::: {.callout-important}
 ## **WTF**
@@ -687,14 +690,23 @@ _Models_ do not drift; data can change over time, as can the population being pr
 :::
 
 
-## Conclusions
+# Conclusions
 
 
 
-## Software and Data
+# Software and Data
 
+The code and data used to create this tutorial are found at
+[`https://github.com/kjell-stattenacity/Tutorial`](https://github.com/kjell-stattenacity/Tutorial). 
 
+[`r R.version.string`](http://cran.r-project.org) was used to create the analyses, and [Quarto version `r system("quarto --version", intern = TRUE)`](https://quarto.org) was used to create the pre-print document and website. The GitHub repository lists specific R package versions that were used. 
 
-## References
+```{r}
+#| label: reference-header
+#| echo: false
+#| results: asis
 
-
+if (knitr::is_latex_output()) {
+  cat("# References {.unnumbered}\n")
+}
+```

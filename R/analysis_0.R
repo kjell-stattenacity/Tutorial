@@ -75,10 +75,10 @@ pls_pred_0 <-
   cbind(preproc_0) %>% 
   as_tibble() %>% 
   inner_join(
-    train_0 %>% add_rowindex() %>% select(.row, sample_id),
+    train_0 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row)
+  dplyr::select(-.row)
 
 # ------------------------------------------------------------------------------
 # Random forest analysis
@@ -113,10 +113,10 @@ rf_pred_0 <-
   cbind(preproc_0) %>% 
   as_tibble() %>% 
   inner_join(
-    train_0 %>% add_rowindex() %>% select(.row, sample_id),
+    train_0 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row)
+  dplyr::select(-.row)
 
 
 # ------------------------------------------------------------------------------
@@ -149,10 +149,10 @@ cb_pred_0 <-
   cbind(preproc_0) %>% 
   as_tibble() %>% 
   inner_join(
-    train_0 %>% add_rowindex() %>% select(.row, sample_id),
+    train_0 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row)
+  dplyr::select(-.row)
 
 
 # ------------------------------------------------------------------------------
@@ -194,10 +194,10 @@ svm_pred_0 <-
   cbind(preproc_0) %>% 
   as_tibble()  %>% 
   inner_join(
-    train_0 %>% add_rowindex() %>% select(.row, sample_id),
+    train_0 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row)
+  dplyr::select(-.row)
 
 # ------------------------------------------------------------------------------
 # PCA components for diagnostic plots 

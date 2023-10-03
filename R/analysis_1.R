@@ -32,7 +32,7 @@ preproc_1 <- tibble(differentiation_order = 1, polynomial_order = 2, window_size
 data_1 <- 
   processed_data %>% 
   inner_join(preproc_1, by = c("differentiation_order", "polynomial_order", "window_size")) %>% 
-  select(-differentiation_order, -polynomial_order, -window_size)
+  dplyr::select(-differentiation_order, -polynomial_order, -window_size)
 
 set.seed(910)
 split_1 <- initial_split(data_1, strata = concentration, prop = 0.77)
@@ -89,10 +89,10 @@ pls_pred_1 <-
   cbind(preproc_1) %>% 
   as_tibble() %>% 
   inner_join(
-    train_1 %>% add_rowindex() %>% select(.row, sample_id),
+    train_1 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row)
+  dplyr::select(-.row)
 
 # ------------------------------------------------------------------------------
 # Random forest analysis
@@ -135,10 +135,10 @@ rf_pred_1 <-
   as_tibble() %>% 
   full_join(mtry_prop_1, by = "mtry") %>% 
   inner_join(
-    train_1 %>% add_rowindex() %>% select(.row, sample_id),
+    train_1 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row)
+  dplyr::select(-.row)
 
 
 # ------------------------------------------------------------------------------
@@ -172,10 +172,10 @@ cb_pred_1 <-
   cbind(preproc_1) %>% 
   as_tibble() %>% 
   inner_join(
-    train_1 %>% add_rowindex() %>% select(.row, sample_id),
+    train_1 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row) 
+  dplyr::select(-.row) 
 
 
 # ------------------------------------------------------------------------------
@@ -221,10 +221,10 @@ svm_pred_1 <-
   cbind(preproc_1) %>% 
   as_tibble() %>% 
   inner_join(
-    train_1 %>% add_rowindex() %>% select(.row, sample_id),
+    train_1 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row) 
+  dplyr::select(-.row) 
 
 # ------------------------------------------------------------------------------
 # PCA components for diagnostic plots 
@@ -245,7 +245,7 @@ pca_var_1 <-
   rec_pca_1 %>% 
   tidy(id = "pca", type = "variance") %>% 
   filter(terms == "cumulative percent variance") %>% 
-  dplyr::select(value, component) %>% 
+  dplyr::dplyr::select(value, component) %>% 
   cbind(preproc_1) %>% 
   as_tibble() 
 

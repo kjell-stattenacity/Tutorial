@@ -28,7 +28,7 @@ preproc_4 <- tibble(differentiation_order = 2, polynomial_order = 2, window_size
 data_4 <- 
   processed_data %>% 
   inner_join(preproc_4, by = c("differentiation_order", "polynomial_order", "window_size")) %>% 
-  select(-differentiation_order, -polynomial_order, -window_size)
+  dplyr::select(-differentiation_order, -polynomial_order, -window_size)
 
 set.seed(910)
 split_4 <- initial_split(data_4, strata = concentration, prop = 0.77)
@@ -86,10 +86,10 @@ pls_pred_4 <-
   cbind(preproc_4) %>% 
   as_tibble() %>% 
   inner_join(
-    train_4 %>% add_rowindex() %>% select(.row, sample_id),
+    train_4 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row)
+  dplyr::select(-.row)
 
 # ------------------------------------------------------------------------------
 # Random forest analysis
@@ -124,10 +124,10 @@ rf_pred_4 <-
   as_tibble() %>% 
   full_join(mtry_prop_4, by = "mtry") %>% 
   inner_join(
-    train_4 %>% add_rowindex() %>% select(.row, sample_id),
+    train_4 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row)
+  dplyr::select(-.row)
 
 
 # ------------------------------------------------------------------------------
@@ -160,10 +160,10 @@ cb_pred_4 <-
   cbind(preproc_4) %>% 
   as_tibble() %>% 
   inner_join(
-    train_4 %>% add_rowindex() %>% select(.row, sample_id),
+    train_4 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row) 
+  dplyr::select(-.row) 
 
 
 # ------------------------------------------------------------------------------
@@ -205,10 +205,10 @@ svm_pred_4 <-
   cbind(preproc_4) %>% 
   as_tibble() %>% 
   inner_join(
-    train_4 %>% add_rowindex() %>% select(.row, sample_id),
+    train_4 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
     by = ".row"
   ) %>% 
-  select(-.row) 
+  dplyr::select(-.row) 
 
 # ------------------------------------------------------------------------------
 # PCA components for diagnostic plots 
