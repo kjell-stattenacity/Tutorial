@@ -25,9 +25,10 @@ knitr:
 #| include: false
 
 library(data.table)
-library(sfdf)   # from github.com/topepo/sfd
+library(sfd)   # from github.com/topepo/sfd
 library(patchwork)
 library(tidymodels)
+library(rules)
 
 # ------------------------------------------------------------------------------
 
@@ -109,7 +110,7 @@ The first step in any modeling process is to understand the available data.
 ::: {.callout-important}
 ## **WTF**
 
-the only way to be comfortable with your data is to never look at them.  
+The only way to be comfortable with your data is to never look at them.  
 :::
 
 In this application, there is one sample from each of 60 bioreactors.  Raman spectroscopy has been applied to each sample, and the drug product concentration has been measured.  @fig-raman-spectra displays the original Raman spectra.  From this figure, we can see that there is an initial downward trend towards the middle of the wavenumbers, then an upward trend towards the higher wavenumbers.  The intensities are not randomly scattered.  Instead, there is a relationship across wavenumbers with intensity.  This relationship indicates that wavenumber intensities are correlated with each other.  In fact, the correlation between the majority of adjacent wavenumbers is greater than 0.99.  
@@ -177,11 +178,29 @@ ggplot(data_wide, aes(x = concentration)) +
 ```
 
 ```{r}
+#| label: pca-info
+#| include: false
+pca_sample <- 
+  all_pca_data %>% 
+  slice_max(abs(PC1), by = c(Pre)) %>% 
+  distinct(sample_id) %>% 
+  pluck("sample_id")
+
+pca_cap <- 
+  paste0(
+    "Two-component PCA plots for each pre-processing method. One particular sample (#", 
+    pca_sample, ") has extreme values for the first principal compoent across all ",
+    "pre-processing methods.")
+```
+
+Principal component analysis was conducted on the training set predictors (after centering and scaling). This can help us understand if there are any unwanted systematic effects in the data (such as differences in reagents, instruments, etc.). @fig-pca-plot shows the results using two components. These components accounted for between 65%-95% of the predictor information, with the exception of the (2, 2, 15) set, which only captured about 45% of the information. With the exception of a single sample, there are no obvious patterns in the results to give us pause (such as clustering). That odd sample, number `r pca_sample`, is the same data point in @fig-raman-spectra with relatively low intensity compared to the other spectra. It is unclear how this would affect the results (if at all), so it was retained in the data set. Later analyses will examine whether this sample is associated with a larger residual or not. 
+
+```{r}
 #| label: fig-pca-plot
 #| echo: false
 #| out-width: "80%"
 #| fig-align: center
-#| fig-cap: "PCA plots for each pre-processing method."
+#| fig-cap: !expr pca_cap
 
 all_pca_data %>% 
   mutate(
@@ -248,14 +267,14 @@ For the example presented here, a stratified random approach will be used to spl
 
 ## Pre-processing
 
-The predictors and response, in their original form, are usually not in the best form for enabling models to find an optimal predictive relationship.  The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors.  Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics.  However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present.  As a simple example, consider a predictor that has three categories: Low, Mid, and High.  The information, in this form, cannot be ingested by most models.  Instead, the information needs to be converted into either an ordinal-scaled predictor or two binary variables.  Missing data also wreaks havoc on predictive models because the models require non-missing information.  Therefore, appropriate pre-processing steps must be taken before model training.
+The predictors and response, in their original form, are usually not in the best form for enabling models to find an optimal predictive relationship.  The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors.  Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics.  However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present.  As a simple example, consider a predictor that has three categories: low, medium, and high.  The information, in this form, cannot be ingested by most models.  Instead, the information needs to be converted into either an ordinal-scaled predictor or two binary variables.  Missing data also wreaks havoc on predictive models because the models require non-missing information.  Therefore, appropriate pre-processing steps must be taken before model training.
 
 ::: {.callout-important}
 ## **WTF**
 
 The stereotypical concept of a model is often confined to the supervised operation of estimating model parameters (e.g., slope and intercepts in linear regression, etc.). 
 
-However, the overall modeling process includes any serious data analysis steps before or after the  model fit. This can include steps such as PCA feature extraction, imputation, post hoc calibration, etc. 
+However, the overall modeling process includes any serious data analysis steps before or after the  model fit. This can include steps such as PCA feature extraction, imputation, _post hoc_ calibration, etc. 
 
 It is very important to think of each of these estimation procedures as part of "the model". 
 :::
@@ -268,7 +287,7 @@ For example, as shown previously, there is a high degree of correlation between 
 There are a variety of tools to compensate for this issue: 
 
 * Use a feature extraction method, such as principal component analysis, to generate alternate versions of the predictors that capture the same information but are uncorrelated. 
-* Focus on models that utilize regularization to reduce the effect of the correlations. 
+* Focus on models that utilize regularization to reduce the effect of the correlations, such as ridge regression [@hoerl1970ridge]. 
 * Exploit the autoregressive nature of the spectra by providing the model with the differences between consecutive predictors (i.e., first- or second-derivatives).
 
 In practice, different models have affinities for different types of predictor sets. We often have to couple different predictor sets to different models and discover which strategy works and which does not. 
@@ -276,14 +295,14 @@ In practice, different models have affinities for different types of predictor s
 ::: {.callout-important}
 ## **WTF**
 
-The operations that you apply to the predictors before the model are at least as important as which supervised model that you use. _Feature engineering_ is the process of representing the predictor data in a way that makes the model have to work the least to be effective.
+The operations that you apply to the predictors before the model are at least as important as which supervised model that you use. _Feature engineering_ [@fes] is the process of representing the predictor data in a way that makes the model have to work the least to be effective.
 :::
 
 Another issue with these data is _baseline drift_. Recall from @fig-raman-spectra that the intensity values across samples have an initial downward trend towards about wavenumber 2500, then begin to trend upward.  In spectroscopy data, deviations in intensity from zero are commonly referred to as baseline drift, typically stemming from factors such as measurement system noise, interference, or fluorescence [@rinnan2009review]. Importantly, these deviations do not relate to the sample's chemical composition; they are a systematic nuisance. 
 
 Baseline drift is a notable source of measurement variability, where the vertical variability surpasses that associated with spectral peaks. The excess variability, originating from extraneous sources contributing to the background, can detrimentally affect models reliant on predictor variability, such as principal component regression and partial least squares.
 
-It would be ideal if all background trends could be completely removed.  A zero intensity value for a wavenumber would theoretically mean that no molecules were present forthat specific wavenumber.  Although measures can be implemented to mitigate interference, fluorescence, and noise, it remains exceedingly challenging to eliminate background through experimental means completely.  Therefore, the background patterns must be approximated, and this approximation must be removed from the observed intensities.  Therefore, the background patterns must be estimated and subtracted from the observed intensities.
+It would be ideal if all background trends could be completely removed.  A zero intensity value for a wavenumber would theoretically mean that no molecules were present for that specific wavenumber.  Although measures can be implemented to mitigate interference, fluorescence, and noise, it remains exceedingly challenging to eliminate background through experimental means completely.  Therefore, the background patterns must be approximated, and this approximation must be removed from the observed intensities.  Therefore, the background patterns must be estimated and subtracted from the observed intensities.
 
 A polynomial smoother [@cleveland1988locally; @luers1971polynomial] is one tool that can be used to approximate the background.  @fig-profile-baseline-poly illustrates the original spectra for the first sample, the background as modeled by a polynomial smoother, and the corrected spectra.  Notice that the corrected spectra are now more anchored with intensities at or near zero.
 
@@ -420,17 +439,17 @@ Random forest is a recursive partitioning that is built on an ensemble of trees 
 ### Cubist
 The Cubist model is also constructed from an initial ensemble of trees but in a very different, more complex way than RF [@quinlan1987simplifying]. It uses a model tree rather than a partitioning tree as its foundation. The primary difference between a partitioning tree and a model tree is that a model tree constructs a linear model in each terminal node. The paths through the trees to the terminal node are _rules_, and these rules are further pruned and/or simplified. 
 
-Cubist creates an ensemble of individual rule-based models in a manner that is similar, but not the same as, boosting [@kuhn2013applied]. Once the ensemble has been completed, predictions from the samples’ closest neighbors in the training set can further adjust the model predictions (REF).  Cubist has two tuning parameters: the number of committees and the number of nearest neighbors.
+Cubist creates an ensemble of individual rule-based models in a manner that is similar, but not the same as, boosting [@kuhn2013applied]. Once the ensemble has been completed, predictions from the samples’ closest neighbors in the training set can further adjust the model predictions [@Quinlan1993p1150].  Cubist has two tuning parameters: the number of committees and the number of nearest neighbors.
 
 ### Support vector machines
 
 Support vector machines is a modeling technique that uncovers the relationship between the predictors and the response using samples that lie outside of a conceptual margin (a boundary about the optimal relationship) [@drucker1996support;@ullah2018raman]. Several nonlinear versions of SVMs exist; the one implemented in this analysis uses a radial basis function (RBF). For the radial-basis SVM, the number of samples allowed to be outside of the margin is controlled by the cost parameter, and the RBF dispersion parameter controls the surface's flexibility. Therefore, the radial basis SVM has the flexibility to identify a non-linear relationship between the predictors and the response.
 
-SVMs are the most difficult to tune out of the four models described here. The two tuning parameters tend to exhibit traditional interaction effects so that there can be a small region of good performance within a larger area of unsuitable models (see TWMR for an example). 
+SVMs are the most difficult to tune out of the four models described here. The two tuning parameters tend to exhibit traditional interaction effects so that there can be a small region of good performance within a larger area of unsuitable models; see, for example, [Section 14.1](https://www.tmwr.org/iterative-search#svm) of @tmwr.
 
 ## Modeling Strategy
 
-For each model, a set of 25 tuning parameter combinations are evaluated. For PLS and random forest, we'll only tune a single parameter (the number of PLS components and $m_{try}$, respectively). For support vector and Cubist models, a space-filling design is used to create two-dimensional grids of the parameter space for each model. These grids are created using Latin hypercube designs that fill the rectangular parameter space. They use an additional maximum entropy criterion to reduce the chances that any of the tuning parameter combinations are too close (i.e., redundant). The _modeling process_ has 3-4 parameters: 1-2 from the models themselves and two from the pre-processing (i.e., differentiation order and the smoothing window size). 
+For each model, a set of 25 tuning parameter combinations are evaluated. For PLS and random forest, we'll only tune a single parameter (the number of PLS components and $m_{try}$, respectively). For support vector and Cubist models, a space-filling design [@joseph2016space] is used to create two-dimensional grids of the parameter space for each model. These grids are created using Latin hypercube designs that fill the rectangular parameter space. They often use an additional criterion to reduce the chances that any of the tuning parameter combinations are too close (i.e., redundant). The _modeling process_ has 3-4 parameters: 1-2 from the models themselves and two from the pre-processing (i.e., differentiation order and the smoothing window size). 
 
 For each tuning parameter combination, 5 repeats of 10-fold cross-validation are used to appropriately estimate the RMSE for future samples. We will examine the relationship between the tuning parameters and the estimated RMSE to help understand the performance patterns and to choose reasonable values for the parameters.  
 
@@ -440,34 +459,35 @@ For each tuning parameter combination, 5 repeats of 10-fold cross-validation are
 Despite the literature, optimizing hyper-parameters using grid search is effective and can be very efficient using advanced (but easy to use) computational and statistical methods
 :::
 
-One computational tool for grid search is parallel processing. None of the 1,250 models estimated in the grid search depend on the other and, as such, can be executed simultaneously on different computer CPU cores. Software can seamlessly facilitate this and it is not uncommon to see 5-fold reductions in the computational time using this method. 
+One computational tool for grid search is parallel processing. None of the 1,250 models estimated in the grid search depend on the other and, as such, can be executed simultaneously on different computer CPU cores. Software can seamlessly facilitate this and it is not uncommon to see 5-fold reductions in the computational time using this method [@tmwr]. 
 
-Also, there are statistical methods to evaluate 25 models without having to estimate all of them. For example, for some models, the most complex model can be fit, and results from sub-models can be derived at no extra cost. For example, if a Cubist model is created with an ensemble size of 50, we can get predictions from the same model for sizes 1 - 40 at no computational cost. Additionally, racing methods can conduct interim analyses during grid search and remove tuning parameter combinations that are unlikely to be chosen as the best results. 
+Also, there are statistical methods to evaluate 25 models without having to estimate all of them. For example, for some models, the most complex model can be fit, and results from sub-models can be derived at no extra cost. For example, if a Cubist model is created with an ensemble size of 50, we can get predictions from the same model for sizes 1 - 40 at no computational cost. Additionally, racing methods [@kuhn2014futility] can conduct interim analyses during grid search and remove tuning parameter combinations that are unlikely to be chosen as the best results. 
 
-Finally, grid search had been considered inefficient because of the assumption that regular (i.e., full factorial) grids were used. If we evaluated $L$ values of each of $M$ tuning parameters, the full factorial set of $L^M$ combinations can become very large. This is no surprise to most CMC statisticians and engineers. However, as previously mentioned, the better design choices for grid search are space-filling designs. It is difficult to quantify the positive impact these designs have had on optimizing models, both in terms of efficiency and efficacy. 
+Finally, grid search had been considered inefficient because of the assumption that regular (i.e., full factorial) grids were used. If we evaluated $L$ values of each of $M$ tuning parameters, the full factorial set of $L^M$ combinations can become very large. This is no surprise to most CMC statisticians and engineers. However, as previously mentioned, the better design choices for grid search are space-filling designs. It is difficult to quantify the positive impact these designs have had on optimizing models, both in terms of efficiency and efficacy. @fig-sfd shows an example Audze-Eglais design from @husslage2011space for the two Cubist tuning parameters and 25 candidate points. 
 
 
 ```{r}
 #| label: fig-sfd
-#| out-width: "60%"
+#| out-width: "45%"
 #| fig-align: center
-#| fig-height: 5
-#| fig-width: 5
+#| fig-height: 4
+#| fig-width: 4
 #| echo: false
 #| warning: false
 #| cache: true
-#| fig-cap: "An example spa ce-filling design for two tuning parameters in a Cubist model"
+#| fig-cap: "An example of a space-filling design for two tuning parameters in a Cubist model."
 
 get_design(2, 25) %>% 
   update_values(list(committees() %>% value_seq(25), rep_len(0:9, 25))) %>% 
   setNames(c("committees", "neighbors")) %>% 
   ggplot(aes(committees, neighbors)) + 
   geom_point() + 
-  labs(x = "Ensemble Size", y = "Number of Nearest Neightbors")
+  labs(x = "Ensemble Size", y = "Number of Nearest Neightbors") +
+  scale_y_continuous(breaks = pretty_breaks())
 
 ```
 
-An alternate tool called Bayesian optimization was used to optimize the support vector machine models. It starts with a small grid of results, in our case, a space-filling design with ten tuning parameter combinations. These initial results create a Gaussian Process model where the resampled RMSE values are the outcome and the SVM tuning parameters (cost and RBF dispersion) are used as predictors. The model then predicts the next tuning parameter combination to resample. Once those results are available, the process repeats. Fifteen iterations of this iterative optimization process were used to evaluate a total of 25 tuning parameter combinations for the SVM models. 
+An alternate tool called Bayesian optimization [@gramacy2020surrogates] was used to optimize the support vector machine models. It starts with a small grid of results, in our case, a space-filling design with ten tuning parameter combinations. These initial results create a Gaussian Process model [@rasmussen2006gaussian] where the resampled RMSE values are the outcome and the SVM tuning parameters (cost and RBF dispersion) are used as predictors. The model then predicts the next tuning parameter combination to resample. Once those results are available, the process repeats. Fifteen iterations of this iterative optimization process were used to evaluate a total of 25 tuning parameter combinations for the SVM models. 
 
 ## Model Tuning Results
 
@@ -509,6 +529,7 @@ First, let's examine the PLS and RF model results. Each optimized a single model
 #| warning: false
 #| fig-height: 4
 #| fig-width: 7.5
+#| out-width: "90%"
 #| fig-cap: "The tuning parameter profiles for partial least squares and random forest."
 
 rmse_rng <- extendrange(all_rmse$RMSE)
@@ -516,68 +537,103 @@ rmse_rng <- extendrange(all_rmse$RMSE)
 pls_plot <- 
   all_pls_metrics %>% 
   filter(.metric == "rmse") %>% 
-  ggplot(aes(num_comp, mean, col = Pre, pch = Pre)) + 
-  geom_line() +
-  geom_point() + 
+  mutate(
+    lower = mean - qnorm(0.95) * std_err,
+    upper = mean + qnorm(0.95) * std_err,
+  ) %>% 
+  ggplot(aes(num_comp, mean)) + 
+  # geom_ribbon(aes(ymin = lower, ymax = upper, fill = Pre), alpha = .08) +
+  geom_point(aes(col = Pre, pch = Pre)) + 
+  geom_line(aes(col = Pre)) + 
   theme(legend.title = element_blank(), legend.position = "top") + 
   labs(y = "Resampled RMSE", x = "Number of PLS Components") +
   lims(y = rmse_rng) +
-  scale_color_brewer(palette = "Set2")
+  scale_color_brewer(palette = "Set2") +
+  scale_fill_brewer(palette = "Set2")
 
 rf_plot <- 
   all_rf_metrics %>% 
   filter(.metric == "rmse") %>% 
-  ggplot(aes(prop, mean, col = Pre, pch = Pre)) + 
-  geom_line() +
-  geom_point() + 
+  mutate(
+    lower = mean - qnorm(0.95) * std_err,
+    upper = mean + qnorm(0.95) * std_err,
+  ) %>%   
+  ggplot(aes(prop, mean)) + 
+  # geom_ribbon(aes(ymin = lower, ymax = upper, fill = Pre), alpha = .08) +
+  geom_point(aes(col = Pre, pch = Pre)) + 
+  geom_line(aes(col = Pre)) + 
   theme(legend.title = element_blank(), legend.position = "top") + 
   labs(y = NULL, x = "Proportion of Randomly Sampled Predictors") +
   lims(y = rmse_rng) +
-  scale_color_brewer(palette = "Set2")
+  scale_color_brewer(palette = "Set2") +
+  scale_fill_brewer(palette = "Set2")
 
 pls_plot + rf_plot + 
   plot_layout(guides = 'collect')  & 
   theme(legend.position = "top")
 ```
 
-@fig-pls-rf-tune-profiles (right) displays the tuning parameter profile for the RF model.  We can see from this figure that as the value of the $m_{try}$ is fairly irrelevant so long as very fewer predictors are randomly sampled.  Also, the predictor set with the best RMSE is the same as the set identified using PLS.  However, the optimal RF model (RMSE = `r format(min(best_rf$mean), digits = 3)`) performs poorly compared to the optimal PLS model (RMSE = `r format(min(best_pls$mean), digits = 3)`).  
+@fig-pls-rf-tune-profiles (right) displays the tuning parameter profile for the RF model.  We can see from this figure that as the value of the $m_{try}$ is fairly irrelevant so long as a sufficiently large proportion of predictors are randomly sampled. The numerically best ranodm forest model used `r format(best_rf$mtry[1], big.mark = ",")` predictors with pre-processing strategy `r best_rf$Pre[1]`, although there is obviously a range of values with the same performance (as well as another pre-processor). 
+
+
+Also, the predictor set with the best RMSE is the same as the set identified using PLS.  However, the optimal RF model (RMSE = `r format(min(best_rf$mean), digits = 3)`) performs poorly compared to the optimal PLS model (RMSE = `r format(min(best_pls$mean), digits = 3)`).  
 
 ```{r}
 #| label: fig-svm-search
 #| echo: false
 #| warning: false
 #| fig-height: 4
-#| fig-cap: "Progress of Bayesian optimization for the SVM parameters.Iteration zero reflects the best candidate value from the intial grid search."
+#| fig-width: 7.5
+#| out-width: "90%"
+#| fig-cap: "Progress of Bayesian optimization for the SVM parameters. Iteration zero reflects the best candidate value from the intial grid search. "
 
 all_svm_metrics %>% 
   filter(.metric == "rmse") %>% 
+    mutate(
+    lower = mean - qnorm(0.95) * std_err,
+    upper = mean + qnorm(0.95) * std_err,
+  ) %>% 
   slice_min(mean, by = c(Pre, .iter)) %>% 
-  ggplot(aes(.iter, mean, col = Pre, group = Pre)) + 
-  geom_point() + 
-  geom_line() + 
-  theme(legend.position = "top") +
+  ggplot(aes(.iter, mean, group = Pre)) + 
+  # geom_ribbon(aes(ymin = lower, ymax = upper, fill = Pre), alpha = .1) +
+  geom_point(aes(col = Pre, pch = Pre)) + 
+  geom_line(aes(col = Pre)) + 
+  theme(legend.position = "top", legend.title = element_blank()) +
   scale_color_brewer(palette = "Set2") +
-    labs(y = "Resampled RMSE", x = "Search Iteration") 
+  scale_fill_brewer(palette = "Set2") +
+  labs(y = "Resampled RMSE", x = "Search Iteration") 
 
 ```
 
 
-The next step in the process is to select which predictor set, model, and tuning parameter settings are optimal for the data.  @fig-all-optimal-models displays the cross-validated RMSE values corresponding to each model's optimal tuning parameter settings.  There are several important findings that this figure reveals.  First, the SVM and RF models have improved predictive performance when the SG pre-processing is applied.  On the other hand, the PLS and Cubist models are not substantially improved with this pre-processing.  In fact, the performance can be made worse if second-order differentiation is applied.
+@fig-svm-search
+
+The next step in the process is to select which predictor set, model, and tuning parameter settings are optimal for the data.  
+
+
+@fig-all-optimal-models displays the cross-validated RMSE values corresponding to each model's optimal tuning parameter settings.  There are several important findings that this figure reveals.  First, the SVM and RF models have improved predictive performance when the SG pre-processing is applied.  On the other hand, the PLS and Cubist models are not substantially improved with this pre-processing.  In fact, the performance can be made worse if second-order differentiation is applied.
 
 ```{r}
 #| label: fig-all-optimal-models
 #| echo: false
 #| warning: false
-#| fig-height: 4
-#| fig-cap: "Cross-validation predictive performance using the optimal tuning parameter settings for each predictor set and model."
+#| out-width: "75%"
+#| fig-height: 4.5
+#| fig-cap: "Cross-validation predictive performance using the optimal tuning parameter settings for each predictor set and model. The colored regions are approximate 90% confidence intervals."
 
 all_best %>% 
-  ggplot(aes(Pre, RMSE, col = Model, group = Model, pch = Model)) + 
-  geom_point(cex = 2) +
-  geom_line() + 
+  mutate(
+    lower = RMSE - qnorm(0.95) * std_err,
+    upper = RMSE + qnorm(0.95) * std_err,
+  ) %>% 
+  ggplot(aes(Pre, RMSE, group = Model)) + 
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = Model), alpha = .08) +
+  geom_point(aes(pch = Model, col = Model), cex = 2) +
+  geom_line(aes(col = Model)) + 
   labs(x = "Preprocessing", y = "Best RMSE") + 
-  theme(legend.position = "top") + 
-  scale_color_brewer(palette = "Dark2")
+  theme(legend.position = "top", legend.title = element_blank()) + 
+  scale_color_brewer(palette = "Dark2") + 
+  scale_fill_brewer(palette = "Dark2")
 ```
 
 Across the five pre-processing sets and four models, let's compare the the observed versus predicted values for the PLS, Cubist, and SVM models with the unprocessed and two variations of the SG pre-processed data (1, 2, 15 and 2, 2, 15).  @fig-obs-pred-cv-comparison highlights some interesting characteristics across the models and predictor sets.  First, we see that the SVM model cannot decipher the relationship between predictors and the response when the data is not pre-processed.  In fact, it is challenging for SVM models to find predictive signals when there are many correlated predictors in the data [REFS].  Next, one particular sample is challenging for the PLS model to fit when the predictors are not pre-processed or when there is some pre-processing (2, 2, 15).  For the Cubist model, this same sample is better predicted by the model with no pre-processing and less well predicted with either of the pre-processed data sets.  What this means is that the same pre-processing approach is rarely effective across all models.  Instead, many model types evaluated across a range of tuning parameters along with a variety of pre-processing conditions need to be evaluated in order to find the optimal model, 
@@ -604,6 +660,14 @@ all_pred %>%
 
 It is a common situation when multiple tuning parameter combinations have approximately the same level of performance. Likewise, it is rare that a single type of model completely outclasses the others. 
 :::
+
+
+::: {.callout-important}
+## **WTF**
+Ensembles are only for minimal gains with large training sets. 
+
+:::
+
 
 ## Test Set Results
 
