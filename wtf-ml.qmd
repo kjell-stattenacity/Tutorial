@@ -223,7 +223,7 @@ if (knitr::is_html_output()) {
 }
 ```
 
-For the example presented here, a stratified random approach will be used to split the data into a training (75%) and a test (25%) set.  The distribution of the response will be used as the stratification variable such that an equal proportion of samples will be randomly selected within each quartile of the distribution.  When training models, we will compare the performance of 10-fold cross-validation as well as repeated 10-fold cross-validation.
+For the example presented here, a stratified random approach will be used to split the data into a training (75%) and a test (25%) set.  The distribution of the response will be used as the stratification variable such that an equal proportion of samples will be randomly selected within each quartile of the distribution.  
 
 ## Pre-processing
 
@@ -411,7 +411,7 @@ SVMs are the most difficult to tune out of the four models described here. The t
 
 For each model, a set of 25 tuning parameter combinations are evaluated. For PLS and random forest, we'll only tune a single parameter (the number of PLS components and $m_{try}$, respectively). For support vector and Cubist models, a space-filling design is used to create two-dimensional grids of the parameter space for each model. These grids are created using Latin hypercube designs that fill the rectangular parameter space. They use an additional maximum entropy criterion to reduce the chances that any of the tuning parameter combinations are too close (i.e., redundant). The _modeling process_ has 3-4 parameters: 1-2 from the models themselves and two from the pre-processing (i.e., differentiation order and the smoothing window size). 
 
-For each tuning parameter combination, 10 repeats of 10-fold cross-validation are used to appropriately estimate the RMSE for future samples. We will examine the relationship between the tuning parameters and the estimated RMSE to help understand the performance patterns and to choose reasonable values for the parameters.  
+For each tuning parameter combination, 5 repeats of 10-fold cross-validation are used to appropriately estimate the RMSE for future samples. We will examine the relationship between the tuning parameters and the estimated RMSE to help understand the performance patterns and to choose reasonable values for the parameters.  
 
 ::: {.callout-important}
 ## **WTF**
@@ -427,14 +427,14 @@ Finally, grid search had been considered inefficient because of the assumption t
 
 An alternate tool called Bayesian optimization was used to optimize the support vector machine models. It starts with a small grid of results, in our case, a space-filling design with ten tuning parameter combinations. These initial results create a Gaussian Process model where the resampled RMSE values are the outcome and the SVM tuning parameters (cost and RBF dispersion) are used as predictors. The model then predicts the next tuning parameter combination to resample. Once those results are available, the process repeats. Fifteen iterations of this iterative optimization process were used to evaluate a total of 25 tuning parameter combinations for the SVM models. 
 
-## Results
+## Model Tuning Results
 
 ```{r}
 #| label: compute-best
 #| include: false
 
 models <- c( "Partial Least Squares", "Random Forest", "Cubist", "Support Vector Machine")
-preproc <- c("No Pre-Processing", "1, 2, 15", "2, 2, 15", "1, 2, 49", "2, 2, 49")
+preproc <- c("No Pre-Processing", "(1, 2, 15)", "(2, 2, 15)", "(1, 2, 49)")
 
 best_pls <- 
   all_pls_rmse %>% 
@@ -474,7 +474,7 @@ best_pred <-
 
 ```
 
-First, let's examine the PLS and RF model results. Each optimized a single model parameter. @fig-pls-rf-tune-profiles (left) illustrates the tuning parameter profiles across the number of components that were evaluated for the original spectra as well as the different Savitzky-Golay pre-processed spectra.  RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed.  The model with the lowest RMSE uses the SG filter with parameterization of first order differentiation, second order polynomial, and a small window size (1, 2, 15), and `r best_pls$num_comp[best_pls$Pre == "1, 2, 15"]` components.
+First, let's examine the PLS and RF model results. Each optimized a single model parameter. @fig-pls-rf-tune-profiles (left) illustrates the tuning parameter profiles across the number of components that were evaluated for the original spectra as well as the different Savitzky-Golay pre-processed spectra.  RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed.  The model with the lowest RMSE uses the SG filter with parameterization of first order differentiation, second order polynomial, and a small window size (1, 2, 15), and `r best_pls$num_comp[best_pls$Pre == "(1, 2, 15)"]` components.
 
 ```{r}
 #| label: fig-pls-rf-tune-profiles
@@ -557,6 +557,10 @@ best_pred %>%
 
 It is a common situation when multiple tuning parameter combinations have approximately the same level of performance. Likewise, it is rare that a single type of model completely outclasses the others. 
 :::
+
+## Test Set Results
+
+
 
 ## Post-Modeling Activities
 
