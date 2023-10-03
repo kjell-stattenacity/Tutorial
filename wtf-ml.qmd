@@ -490,7 +490,7 @@ get_design(2, 25) %>%
 
 ```
 
-An alternate tool called Bayesian optimization [@gramacy2020surrogates] was used to optimize the support vector machine models. It starts with a small grid of results, in our case, a space-filling design with ten tuning parameter combinations. These initial results create a Gaussian Process model [@rasmussen2006gaussian] where the resampled RMSE values are the outcome, and the SVM tuning parameters (cost and RBF dispersion) are used as predictors. The model then predicts the next tuning parameter combination to resample. Once those results are available, the process repeats. Fifteen iterations of this iterative optimization process were used to evaluate a total of 25 tuning parameter combinations for the SVM models. 
+An alternate tool called Bayesian optimization [@gramacy2020surrogates] was used to optimize the support vector machine models. It starts with a small grid of results, in our case, a space-filling design with ten tuning parameter combinations. These initial results are used as substrate for a Gaussian Process (GP) model [@rasmussen2006gaussian] where the resampled RMSE values are the outcomes, and the SVM tuning parameters (cost and RBF dispersion) are the predictors. The GP then predicts the next tuning parameter combination to resample. Once those results are available, the process repeats. Fifteen iterations of this iterative optimization process were used to evaluate a total of 25 tuning parameter combinations for the SVM models. 
 
 # Model Tuning Results
 
