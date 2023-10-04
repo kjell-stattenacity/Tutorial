@@ -78,10 +78,11 @@ div.csl-indent {
 
 
 </header><p>(This is a preprint of an article submitted to a <em>Pharmaceutical Statistics</em> special nonclinical tutorial edition)</p>
-<section id="introduction" class="level2"><h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
-<p>It feels like machine learning is everywhere. Within data analysis circles, almost every discussion involves how artificial intelligence and machine learning can change our lives. ChatGPT has turned up the noise in the conversation, and many people believe it should be applied.</p>
+<section id="introduction" class="level1"><h1>Introduction</h1>
+<p>It feels like machine learning is everywhere. Within data analysis circles, almost every discussion involves how artificial intelligence and machine learning can change our lives. ChatGPT (<a href="https://chat.openai.com/"><code>https://chat.openai.com</code></a>) and similar applications have turned up the noise in the conversation, and many people believe it should be applied. TODO more here</p>
+<p>This tutorial assumes that the reader has had some exposure to machine learning (a.k.a. predictive modeling or statistical learning) and related techniques such as resampling. If not, we suggest <span class="citation" data-cites="HastieEtAl2017">Hastie, Tibshirani, and Friedman (<a href="#ref-HastieEtAl2017" role="doc-biblioref">2017</a>)</span> for technical information and <span class="citation" data-cites="kuhn2013applied">Kuhn and Johnson (<a href="#ref-kuhn2013applied" role="doc-biblioref">2013</a>)</span> for practical descriptions focused on applying these methods. For deep learning methods, <span class="citation" data-cites="goodfellow2016deep">Goodfellow, Bengio, and Courville (<a href="#ref-goodfellow2016deep" role="doc-biblioref">2016</a>)</span> and <span class="citation" data-cites="charu2018neural">Charu (<a href="#ref-charu2018neural" role="doc-biblioref">2018</a>)</span> are good introductions.</p>
 <p>This tutorial discusses more realistic approaches to using machine learning in preclinical applications, specifically Chemistry, Manufacturing, and Control (CMC) applications. The structure takes a relatively ordinary experimental problem (predicting drug concentration using spectroscopy) to frame a discussion about what machine learning can, can’t do, and probably should do. The idea is that most machine learning training materials are not holistic examinations of how the process actually works. While describing our analysis, we will highlight “what they forgot to tell you” about these tools.</p>
-<p>As an example, it might make sense to discuss what the term “machine learning” actually means and under what circumstances it is appropriate. Historically, it usually connotes a specific type of black-block model such as a neural network or support vector machine. This leads us to our our first <em>what they forgot</em> (WTF):</p>
+<p>For example, it might make sense to discuss what the term “machine learning” means and under what circumstances it is appropriate. Historically, it usually connotes a specific type of black-block model, such as a neural network or support vector machine. This leads us to our first <em>what they forgot</em> (WTF):</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -95,7 +96,7 @@ div.csl-indent {
 <p>The idea of a “machine learning model” is more defined by the project’s goal than the type of model.</p>
 </div>
 </div>
-<p>It is difficult to argue that ML models focus on making the most accurate prediction of a new sample based on historical data. From that point of view, it could be any sufficiently complex model that performs sufficiently well. For example, a linear regression could fit this definition by including appropriate interactions or nonlinear terms, such as spline basis expansions. However…</p>
+<p>It is difficult to argue that ML models focus on making the most accurate prediction of a new sample based on historical data. From that point of view, any sufficiently complex model that performs sufficiently well. For example, a linear regression could fit this definition by including appropriate interactions or nonlinear terms, such as spline basis expansions. The models most representative of the current zeitgeist are sophisticated and impenetrable methods such as neural networks and boosted trees. However…</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -110,8 +111,8 @@ div.csl-indent {
 </div>
 </div>
 <p>Why not? First, not all problems are purely prediction problems. Most black-box models used for ML, such as neural networks or tree ensembles, are excellent at prediction but poor at almost anything else. We have seen applications where simple two-factor experimental data were analyzed using the random forest ensemble method instead of a simple ANOVA model. When it comes to judging what predictors are important to one another, many machine learning models are not very applicable.</p>
-<p>Another reason is the potential limitations of experimental data. Sometimes, there is not enough data to support fitting such a model. For example, if an unreplicated response surface design were available, training a model and characterizing its efficacy with so few data points would be difficult.</p>
-<p>For some, there is a significant urge to fit complex ML models since they often are the best choice in completely different domains. These domains often have access to excessive amounts of non-tabular data. These are data structures that do not naturally fit into the traditional rectangular data format (e.g., spreadsheets or database tables). The most common examples are images, video, and text. Given a large amount of data and complex enough models, we have tools that recognize if a cat is in a picture or can ingest a prompt and appear to complete a task correctly, such as answering a question or writing code. These models are often complex deep-learning neural networks.</p>
+<p>Another reason is the potential limitations of experimental data. Sometimes, there is not enough data to support fitting such a model. For example, if an unreplicated response surface design were available, training a model and characterizing its efficacy with so few data points would be difficult. Data size is a limitation, but there are other challenging data characteristics: irrelevant predictors, measurement system noise, censored values, multicollinearity, and others.</p>
+<p>For some, there is a significant urge to fit complex ML models since they often are the best choice in completely different domains. These domains often have access to excessive amounts of non-tabular data. These are data structures that do not naturally fit into the traditional rectangular data format (e.g., spreadsheets or database tables). The most common examples are images, video, and text. Given a large amount of data and complex enough models, we have tools that recognize cats a picture or can ingest a prompt and appear to complete a task correctly, such as answering a question or writing code. These models are often complex deep-learning neural networks.</p>
 <p>A disconnect occurs because most experimental data used in CMC applications are tabular (or can be made to be tabular).</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -126,12 +127,12 @@ div.csl-indent {
 <p>Unless you are analyzing images, it is exceedingly unlikely that a deep-learning model is your best option.</p>
 </div>
 </div>
-<p>There is considerable anecdotal evidence that highly complex neural networks may not perform well for reasonably sized tabular data sets. This is currently being examined more formally in the literature <span class="citation" data-cites="kadra2021regularization gorishniy2021revisiting Borisov2022 SHWARTZZIV202284">(<a href="#ref-kadra2021regularization" role="doc-biblioref">Kadra et al. 2021</a>; <a href="#ref-gorishniy2021revisiting" role="doc-biblioref">Gorishniy et al. 2021</a>; <a href="#ref-Borisov2022" role="doc-biblioref">Borisov et al. 2022</a>; <a href="#ref-SHWARTZZIV202284" role="doc-biblioref">Shwartz-Ziv and Armon 2022</a>)</span>. Experimental data in preclinical applications can often exhibit colinearity between predictors and data measured with error. For novel data sets, we often do not know which predictors have a relationship with the outcome, increasing the possibility that some irrelevant predictors will be used to fit the model. In general, neural networks do not thrive in these environments <span class="citation" data-cites="kuhn2013applied">(<a href="#ref-kuhn2013applied" role="doc-biblioref">Kuhn and Johnson 2013</a>)</span>.</p>
-<p>Simply put, deep learning models can be effective in specific scenarios but are not appropriate in many other situations.</p>
-<p>In this tutorial, we will discuss the process of constructing ML models for a specific data set. This process starts with understanding the available data’s predictors and response. After this initial understanding, we must then determine how to spend the data for the model-building process. Specifically, some data will need to be used to learn the generalizable characteristics that relate the predictors with the response (i.e., the training set). And other data will need to be used to assess how well the model predicts new data (i.e., the test set). After splitting the data, the predictors and/or the response may need to be preprocessed prior to modeling to enable better models to extract the predictive signal. After preprocessing, we can determine which types of predictive models to build. Each model has one or more parameters that determine how predictors are related to the response. In general, we do not know a priori which values of the tuning parameters are best. Therefore, we search a range of values to identify an optimal value. After identifying an optimal model, this model is then evaluated on the test data to determine if the model can be trusted to predict new, yet-to-be-seen samples reliably.</p>
-<p>Let’s look a specific CMC application to further facilitate the discussion.</p>
-</section><section id="experimental-setting" class="level2"><h2 class="anchored" data-anchor-id="experimental-setting">Experimental setting</h2>
-<p>The manufacturing process of a biological drug is complex and requires careful monitoring to ensure that the cells are efficiently creating the drug product. This process can be very challenging to systematically control since the incubation process can take many days, and cells are complex biological entities that are affected by slight changes to environmental conditions. To ensure that the bioreactor conditions are conducive to the cells producing product, key attributes are measured by sampling the contents of the bioreactor daily. If attributes are not in an acceptable range, then steps must be taken to alter the conditions of the bioreactor. Generally, the sooner the conditions can be adjusted, the better the quantity and quality of the final drug product. Measuring the attributes takes time. Therefore, there is usually a lag between the attribute measurements and the corresponding adjustment. This lag can lead to less and lower-quality product.</p>
+<p>There is considerable anecdotal evidence that highly complex neural networks may not perform well for reasonably sized tabular data sets. This is currently being examined more formally in the literature <span class="citation" data-cites="kadra2021regularization gorishniy2021revisiting Borisov2022 SHWARTZZIV202284">(<a href="#ref-kadra2021regularization" role="doc-biblioref">Kadra et al. 2021</a>; <a href="#ref-gorishniy2021revisiting" role="doc-biblioref">Gorishniy et al. 2021</a>; <a href="#ref-Borisov2022" role="doc-biblioref">Borisov et al. 2022</a>; <a href="#ref-SHWARTZZIV202284" role="doc-biblioref">Shwartz-Ziv and Armon 2022</a>)</span>. Experimental data in preclinical applications can often exhibit multicollinearity between predictors and data measured with error. For novel data sets, we often do not know which predictors have a relationship with the outcome, increasing the possibility that some irrelevant predictors will be used to fit the model. In general, neural networks do not thrive in these environments <span class="citation" data-cites="kuhn2013applied">(<a href="#ref-kuhn2013applied" role="doc-biblioref">Kuhn and Johnson 2013</a>)</span>.</p>
+<p>Simply put, deep learning models can be effective in specific scenarios but are inappropriate in many other situations.</p>
+<p>In this tutorial, we will discuss the process of constructing ML models for a specific data set. This process starts with understanding the available data’s predictors and responses. After this initial understanding, we must then determine how to spend the data for the model-building process. Specifically, some data will need to be used to learn the generalizable characteristics that relate the predictors with the response (i.e., the training set). And other data will need to be used to assess how well the model predicts new data (i.e., the test set). After splitting the data, the predictors and/or the response may need to be preprocessed prior to modeling to enable better models to extract the predictive signal. After preprocessing, we can determine which types of predictive models to build. Each model has one or more parameters that determine how predictors are related to the response. In general, we do not know a priori which values of the tuning parameters are best. Therefore, we search a range of values to identify an optimal value. After identifying an optimal model, this model is then evaluated on the test data to determine if the model can be trusted to predict new yet-to-be-seen samples reliably.</p>
+<p>Let’s look at a specific CMC application to facilitate the discussion further.</p>
+</section><section id="experimental-setting" class="level1"><h1>Experimental setting</h1>
+<p>The manufacturing process of a biological drug is complex and requires careful monitoring to ensure that the cells are efficiently creating the drug product. This process can be very challenging to systematically control since the incubation process can take many days, and cells are complex biological entities that are affected by slight changes in environmental conditions. To ensure that the bioreactor conditions are conducive to the cells producing product, key attributes are measured by sampling the contents of the bioreactor daily. If attributes are not in an acceptable range, then steps must be taken to alter the conditions of the bioreactor. Generally, the sooner the conditions can be adjusted, the better the quantity and quality of the final drug product. Measuring the attributes takes time. Therefore, there is usually a lag between the attribute measurements and the corresponding adjustment. This lag can lead to less and lower-quality products.</p>
 <p>Raman spectroscopy is a tool that can measure chemical characteristics (i.e., a chemical fingerprint) of samples in real-time <span class="citation" data-cites="jesus2020raman esmonde2022role silge2022trends">(<a href="#ref-jesus2020raman" role="doc-biblioref">Jesus, Löbenberg, and Bou-Chacra 2020</a>; <a href="#ref-esmonde2022role" role="doc-biblioref">Esmonde-White, Cuellar, and Lewis 2022</a>; <a href="#ref-silge2022trends" role="doc-biblioref">Silge et al. 2022</a>)</span>. Using the spectra in a predictive model of the characteristics of interest would enable real-time knowledge of and corresponding adjustments to the bioreactor, thus generating higher quality, larger volume drug product.</p>
 <p>In the example outlined in this tutorial, several key input parameters were varied systematically across their operating ranges within each of the 60 small-scale bioreactors for producing a biological drug. Seven days after the start of the experiment, a sample was collected and analyzed by Raman spectroscopy. The concentration of the drug product in the sample was also measured. This analysis aims to understand how predictive Raman spectra can be of the drug product concentration. If there is a relationship, then the model could be used to signal if the bioreactor was insufficiently producing a product and prompting remedial steps to increase production.</p>
 </section><section id="sec-understanding-the-data" class="level1"><h1>Understanding the Data</h1>
@@ -149,12 +150,12 @@ div.csl-indent {
 <p>The only way to be comfortable with your data is to never look at them.</p>
 </div>
 </div>
-<p>In this application, there is one sample from each of 60 bioreactors. Raman spectroscopy has been applied to each sample, and the drug product concentration has been measured. <a href="#fig-raman-spectra" class="quarto-xref">Figure&nbsp;1</a> displays the original Raman spectra. From this figure, we can see that there is an initial downward trend towards the middle of the wavenumbers, then an upward trend towards the higher wavenumbers. The intensities are not randomly scattered. Instead, there is a relationship across wavenumbers with intensity. This relationship indicates that wavenumber intensities are correlated with each other. In fact, the correlation between the majority of adjacent wavenumbers is greater than 0.99.</p>
+<p>In this application, there is one sample from each of the 60 bioreactors. Raman spectroscopy has been applied to each sample, and the drug product concentration has been measured. <a href="#fig-raman-spectra" class="quarto-xref">Figure&nbsp;1</a> displays the original Raman spectra. From this figure, we can see that there is an initial downward trend towards the middle of the wavenumbers, then an upward trend towards the higher wavenumbers. The intensities are not randomly scattered. Instead, there is a relationship across wavenumbers with intensity. This relationship indicates that wavenumber intensities are correlated with each other. In fact, the correlation between the majority of adjacent wavenumbers is greater than 0.99.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-raman-spectra" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="80%">
+<div id="fig-raman-spectra" class="quarto-figure quarto-figure-center anchored" width="80%" data-fig-align="center" data-fig-pos="t!">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-raman-spectra-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-raman-spectra-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%">
+<img src="figures/fig-raman-spectra-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-raman-spectra-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: Raman spectra profiles for each of the 60 samples.
@@ -162,12 +163,12 @@ Figure&nbsp;1: Raman spectra profiles for each of the 60 samples.
 </div>
 </div>
 </div>
-<p>To illustrate this more clearly, let’s examine the relationship among wavenumber measurements for the first sample. For the first sample, the first 3000 lags are created. To create a lag, the data is shifted by a specified number of rows to create a new variable. For example, to create the first lag, the wavenumber measurements are shifted over by one wavenumber. To create the second lag, the measurements are shifed by two wavenumberes, and so on. <a href="#fig-lagged-spectra" class="quarto-xref">Figure&nbsp;2</a> illustrates the correlation between each subquent lag for the first 1000 lags. Clearly, close wavenumbers have high correlation, whereas far wavenumbers have low correlation. As we will see, understanding this characteristic will turn out to be very important when making decisions about how to pre-process the data prior to modeling and which models to train.</p>
-<div class="cell" data-layout-align="center" data-hash="_cache/fig-lagged-spectra_ae6103dabfe47392ca8474f895d2bff8">
+<p>To illustrate this more clearly, let’s examine the relationship among wavenumber measurements for the first sample. For the first sample, the first 3000 lags are created. To create a lag, the data is shifted by a specified number of rows to create a new variable. For example, to create the first lag, the wavenumber measurements are shifted over by one wavenumber. To create the second lag, the measurements are shifted by two wavenumberes, and so on. <a href="#fig-lagged-spectra" class="quarto-xref">Figure&nbsp;2</a> illustrates the correlation between each subsequent lag for the first 1000 lags. Clearly, close wavenumbers have a high correlation, whereas far wavenumbers have a low correlation. As we will see, understanding this characteristic will be very important when deciding how to pre-process the data prior to modeling and which models to train.</p>
+<div class="cell" data-layout-align="center" data-hash="_cache/fig-lagged-spectra_57f627c3607bc6c5576c2e73ea98aefe">
 <div class="cell-output-display">
-<div id="fig-lagged-spectra" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="60%">
+<div id="fig-lagged-spectra" class="quarto-figure quarto-figure-center anchored" width="60%" data-fig-align="center" data-fig-pos="t!">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-lagged-spectra-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-lagged-spectra-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%">
+<img src="figures/fig-lagged-spectra-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-lagged-spectra-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: The correlation between the original intensities and lagged intensities for the first sample. As wavenumbers depart, the correlation of the intensities decreases.
@@ -175,12 +176,13 @@ Figure&nbsp;2: The correlation between the original intensities and lagged inten
 </div>
 </div>
 </div>
-<p>In addition to understanding the predictors, we should also understand characteristics of the response. Examining the response distribution can help determine if a transformation may be necessary or if there are samples that are unusual with respect to the majority of the data. <a href="#fig-concentration" class="quarto-xref">Figure&nbsp;3</a> presents the histogram drug product concentration across the samples. For this data, the distribution is approximately symmetric and has a range of 85 to 115. Based on this figure, a transformation does not appear to be necessary, and there are no samples that are unusual.</p>
+<p>With such a large dimensional data set, it is difficult to investigate specific predictors visually. Additionally, the high degree of between-predictor correlations further increases the ability to investigate the data. In <a href="#sec-pre-processing" class="quarto-xref">Section&nbsp;5</a>, we’ll look at specific data points using dimension reduction tools under different types of signal processing regimes.</p>
+<p>In addition to understanding the predictors, we should also understand the characteristics of the response. Examining the response distribution can help determine if a transformation may be necessary or if there are samples that are unusual with respect to the majority of the data. <a href="#fig-concentration" class="quarto-xref">Figure&nbsp;3</a> presents the histogram of drug product concentration across the samples. For this data, the distribution is approximately symmetric and has a range of 85 to 115. Based on this figure, a transformation does not appear necessary, and there are no unusual samples.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-concentration" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="60%">
+<div id="fig-concentration" class="quarto-figure quarto-figure-center anchored" width="60%" data-fig-align="center" data-fig-pos="t!">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-concentration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-concentration-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%">
+<img src="figures/fig-concentration-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-concentration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;3: The distribution of drug product concentration across samples.
@@ -188,20 +190,7 @@ Figure&nbsp;3: The distribution of drug product concentration across samples.
 </div>
 </div>
 </div>
-<p>Principal component analysis was conducted on the training set predictors (after centering and scaling). This can help us understand if there are any unwanted systematic effects in the data (such as differences in reagents, instruments, etc.). <a href="#fig-pca-plot" class="quarto-xref">Figure&nbsp;4</a> shows the results using two components. These components accounted for between 65%-95% of the predictor information, with the exception of the (2, 2, 15) set, which only captured about 45% of the information. With the exception of a single sample, there are no obvious patterns in the results to give us pause (such as clustering). That odd sample, number 34, is the same data point in <a href="#fig-raman-spectra" class="quarto-xref">Figure&nbsp;1</a> with relatively low intensity compared to the other spectra. It is unclear how this would affect the results (if at all), so it was retained in the data set. Later analyses will examine whether this sample is associated with a larger residual or not.</p>
-<div class="cell" data-layout-align="center">
-<div class="cell-output-display">
-<div id="fig-pca-plot" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="80%">
-<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pca-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-pca-plot-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%">
-</div>
-<figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-pca-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Two-component PCA plots for each pre-processing method. One particular sample (#34) has extreme values for the first principal compoent across all pre-processing methods.
-</figcaption></figure>
-</div>
-</div>
-</div>
-<section id="data-spending" class="level2"><h2 class="anchored" data-anchor-id="data-spending">Data Spending</h2>
+</section><section id="data-spending" class="level1"><h1>Data Spending</h1>
 <p>The primary objective of predictive modeling is to use the existing data to develop a model that predicts new samples as accurately as possible. To achieve this objective, a process must be implemented that avoids overfitting to the existing data <span class="citation" data-cites="kuhn2013applied Hawkins2004p1">(<a href="#ref-kuhn2013applied" role="doc-biblioref">Kuhn and Johnson 2013</a>; <a href="#ref-Hawkins2004p1" role="doc-biblioref">Hawkins 2004</a>)</span>. An overfit model is one that accurately predicts the response for the data on which the model was trained but does not accurately predict new data. To avoid overfitting, we must construct a model-building process that mimics the prediction process for new samples. One way to do this would be to split the data into training and test sets. A model could be constructed with the training set, then predictive performance could be evaluated with the test set.</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -217,35 +206,35 @@ Figure&nbsp;4: Two-component PCA plots for each pre-processing method. One parti
 </div>
 </div>
 <p>However, most predictive models must be constructed using a variety of tuning parameter values. The test set would then need to be evaluated multiple times to assess predictive performance. When the test set is evaluated multiple times, we are essentially finding a model that fits the test set. This process leads to overfitting, and the model performance cannot be trusted to evaluate the predictive performance on new samples accurately. Therefore, a single training/test split will not be adequate for building predictive models. Moreover, it is important to understand that the test set should only be used once to evaluate the final selected models.</p>
-<p>Instead of a single training/test split, we need a process that can be used to evaluate many tuning parameter values for each of many different models. <a href="#fig-resampling" class="quarto-xref">Figure&nbsp;5</a> illustrates a two-layered process that incorporates the use of resampling. The first layer splits the entire data set into a training and test set. In general, anywhere between 50% to 80% of the data is randomly selected for the training data, while the remaining data is placed in the test set. A random split may be adequate. However, we may desire that the training set and testing split data have similar characteristics. For example, it may be advantageous for the training and test sets to have a similar distribution of the response. If the response distribution is skewed, then it would be important that the training and test sets reflect the entirety of the distribution. Likewise, if there are characteristics or covariates in the data that should be proportionally represented, then the data should be split into the training and testing set using a stratified random approach.</p>
+<p>Instead of a single training/test split, we need a process that can be used to evaluate many tuning parameter values for each of many different models. <a href="#fig-resampling" class="quarto-xref">Figure&nbsp;4</a> illustrates a two-layered process that incorporates the use of resampling. The first layer splits the entire data set into a training and test set. In general, anywhere between 50% to 80% of the data is randomly selected for the training data, while the remaining data is placed in the test set. A random split may be adequate. However, we may desire that the training set and testing split data have similar characteristics. For example, it may be advantageous for the training and test sets to have a similar distribution of the response. If the response distribution is skewed, then it would be important that the training and test sets reflect the entirety of the distribution. Likewise, if there are characteristics or covariates in the data that should be proportionally represented, then the data should be split into the training and testing set using a stratified random approach.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-resampling" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="80%">
+<div id="fig-resampling" class="quarto-figure quarto-figure-center anchored" width="80%" data-fig-align="center" data-fig-pos="t!">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-resampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="premade/resampling.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%">
+<img src="premade/resampling.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-resampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;5: Illustration of a general data usage scheme that incorporates resampling.
+Figure&nbsp;4: Illustration of a general data usage scheme that incorporates resampling.
 </figcaption></figure>
 </div>
 </div>
 </div>
-<p>The training data is split using resampling in the second layer of <a href="#fig-resampling" class="quarto-xref">Figure&nbsp;5</a>. Cross-validation could be used in this layer, where the data is split into <span class="math inline">\(V\)</span> folds. For example, if 10-fold cross-validation were used in this layer, then the training data would be partitioned into 10 folds. The analysis set for the first resample would contain 9 folds of the data, while the assessment set would contain 1 fold of the data. A model would be constructed using the 9 folds and would evaluated using the hold-out fold. To create the analysis set for the second resample, a different combination of 9-folds would be used to construct the model. The model would then be evaluated on the fold that was not used in the modeling. For illustration, <a href="#fig-three-fold" class="quarto-xref">Figure&nbsp;6</a> provides an illustration of 3-fold cross-validation (although <span class="math inline">\(V = 10\)</span> is a much better choice).</p>
+<p>The training data is split using resampling in the second layer of <a href="#fig-resampling" class="quarto-xref">Figure&nbsp;4</a>. Cross-validation could be used in this layer, where the data is split into <span class="math inline">\(V\)</span> folds. For example, if 10-fold cross-validation were used in this layer, then the training data would be partitioned into 10 folds. The analysis set for the first resample would contain 9 folds of the data, while the assessment set would contain 1 fold of the data. A model would be constructed using the 9 folds and would evaluated using the hold-out fold. To create the analysis set for the second resample, a different combination of 9-folds would be used to construct the model. The model would then be evaluated on the fold that was not used in the modeling. For illustration, <a href="#fig-three-fold" class="quarto-xref">Figure&nbsp;5</a> provides an illustration of 3-fold cross-validation (although <span class="math inline">\(V = 10\)</span> is a much better choice).</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-three-fold" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="60%">
+<div id="fig-three-fold" class="quarto-figure quarto-figure-center anchored" width="60%" data-fig-align="center" data-fig-pos="t!">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-three-fold-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="premade/three-CV.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%">
+<img src="premade/three-CV.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-three-fold-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6: A diagram of how 3-fold cross-validation can be used with 30 data points.
+Figure&nbsp;5: A diagram of how 3-fold cross-validation can be used with 30 data points.
 </figcaption></figure>
 </div>
 </div>
 </div>
 <p>For the example presented here, a stratified random approach will be used to split the data into a training (75%) and a test (25%) set. The distribution of the response will be used as the stratification variable such that an equal proportion of samples will be randomly selected within each quartile of the distribution.</p>
-</section><section id="pre-processing" class="level2"><h2 class="anchored" data-anchor-id="pre-processing">Pre-processing</h2>
-<p>The predictors and response, in their original form, are usually not in the best form for enabling models to find an optimal predictive relationship. The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors. Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics. However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present. As a simple example, consider a predictor that has three categories: low, medium, and high. The information, in this form, cannot be ingested by most models. Instead, the information needs to be converted into either an ordinal-scaled predictor or two binary variables. Missing data also wreaks havoc on predictive models because the models require non-missing information. Therefore, appropriate pre-processing steps must be taken before model training.</p>
+</section><section id="sec-pre-processing" class="level1"><h1>Pre-processing</h1>
+<p>The predictors and responses, in their original form, are usually not in the best form for enabling models to find an optimal predictive relationship. The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors. Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics. However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present. As a simple example, consider a predictor with three categories: low, medium, and high. The information, in this form, cannot be ingested by most models. Instead, the information must be converted into either an ordinal-scaled predictor or two binary variables. Missing data also wreaks havoc on predictive models because the models require non-missing information. Therefore, appropriate pre-processing steps must be taken before model training.</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -257,15 +246,15 @@ Figure&nbsp;6: A diagram of how 3-fold cross-validation can be used with 30 data
 </div>
 <div class="callout-body-container callout-body">
 <p>The stereotypical concept of a model is often confined to the supervised operation of estimating model parameters (e.g., slope and intercepts in linear regression, etc.).</p>
-<p>However, the overall modeling process includes any serious data analysis steps before or after the model fit. This can include steps such as PCA feature extraction, imputation, <em>post hoc</em> calibration, etc.</p>
-<p>It is very important to think of each of these estimation procedures as part of “the model”.</p>
+<p>However, the overall modeling process includes any serious data analysis steps before or after the model fit. This can include steps such as principal component analysis (PCA) feature extraction <span class="citation" data-cites="Abdi2010p3532 Massy1965p234">(<a href="#ref-Abdi2010p3532" role="doc-biblioref">Abdi and Williams 2010</a>; <a href="#ref-Massy1965p234" role="doc-biblioref">Massy 1965</a>)</span>, imputation <span class="citation" data-cites="hasan2021missing">(<a href="#ref-hasan2021missing" role="doc-biblioref">Hasan et al. 2021</a>)</span>, and <em>post hoc</em> calibration.</p>
+<p>It is very important to consider each of these estimation procedures as part of “the model”.</p>
 </div>
 </div>
 <p>As we will see, some characteristics in our CMC data set can be problematic for some models. A number of pre-processing operations will be evaluated and optimized to counter these data characteristics.</p>
 <p>For example, as shown previously, there is a high degree of correlation between our predictor values. The high degree of multicollinearity frequently occurs with spectral data but is not limited to them. Some models, such as partial least squares (PLS), are unaffected by this situation and can exploit these correlations to produce a successful model. The downside to PLS is that its linear nature has the potential to limit the range of patterns that it can emulate, leading to models that underfit. Other models have more potential to predict accurately but can be severely handicapped by the correlation structure of the predictors.</p>
 <p>There are a variety of tools to compensate for this issue:</p>
 <ul>
-<li>Use a feature extraction method, such as principal component analysis, to generate alternate versions of the predictors that capture the same information but are uncorrelated.</li>
+<li>Use a feature extraction method, such as PCA, to generate alternate versions of the predictors that capture the same information but are uncorrelated.</li>
 <li>Focus on models that utilize regularization to reduce the effect of the correlations, such as ridge regression <span class="citation" data-cites="hoerl1970ridge">(<a href="#ref-hoerl1970ridge" role="doc-biblioref">Hoerl and Kennard 1970</a>)</span>.</li>
 <li>Exploit the autoregressive nature of the spectra by providing the model with the differences between consecutive predictors (i.e., first- or second-derivatives).</li>
 </ul>
@@ -280,42 +269,55 @@ Figure&nbsp;6: A diagram of how 3-fold cross-validation can be used with 30 data
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The operations that you apply to the predictors before the model are at least as important as which supervised model that you use. <em>Feature engineering</em> <span class="citation" data-cites="fes">(<a href="#ref-fes" role="doc-biblioref">Kuhn and Johnson 2019</a>)</span> is the process of representing the predictor data in a way that makes the model have to work the least to be effective.</p>
+<p>The operations that you apply to the predictors before the model are at least as important as which supervised model you use. <em>Feature engineering</em> <span class="citation" data-cites="fes">(<a href="#ref-fes" role="doc-biblioref">Kuhn and Johnson 2019</a>)</span> is the process of representing the predictor data in a way that makes the model have to work the least to be effective.</p>
 </div>
 </div>
 <p>Another issue with these data is <em>baseline drift</em>. Recall from <a href="#fig-raman-spectra" class="quarto-xref">Figure&nbsp;1</a> that the intensity values across samples have an initial downward trend towards about wavenumber 2500, then begin to trend upward. In spectroscopy data, deviations in intensity from zero are commonly referred to as baseline drift, typically stemming from factors such as measurement system noise, interference, or fluorescence <span class="citation" data-cites="rinnan2009review">(<a href="#ref-rinnan2009review" role="doc-biblioref">Rinnan, Van Den Berg, and Engelsen 2009</a>)</span>. Importantly, these deviations do not relate to the sample’s chemical composition; they are a systematic nuisance.</p>
 <p>Baseline drift is a notable source of measurement variability, where the vertical variability surpasses that associated with spectral peaks. The excess variability, originating from extraneous sources contributing to the background, can detrimentally affect models reliant on predictor variability, such as principal component regression and partial least squares.</p>
 <p>It would be ideal if all background trends could be completely removed. A zero intensity value for a wavenumber would theoretically mean that no molecules were present for that specific wavenumber. Although measures can be implemented to mitigate interference, fluorescence, and noise, it remains exceedingly challenging to eliminate background through experimental means completely. Therefore, the background patterns must be approximated, and this approximation must be removed from the observed intensities. Therefore, the background patterns must be estimated and subtracted from the observed intensities.</p>
-<p>A polynomial smoother <span class="citation" data-cites="cleveland1988locally luers1971polynomial">(<a href="#ref-cleveland1988locally" role="doc-biblioref">Cleveland and Devlin 1988</a>; <a href="#ref-luers1971polynomial" role="doc-biblioref">Luers and Wenning 1971</a>)</span> is one tool that can be used to approximate the background. <a href="#fig-profile-baseline-poly" class="quarto-xref">Figure&nbsp;7</a> illustrates the original spectra for the first sample, the background as modeled by a polynomial smoother, and the corrected spectra. Notice that the corrected spectra are now more anchored with intensities at or near zero.</p>
+<p>A polynomial smoother <span class="citation" data-cites="cleveland1988locally luers1971polynomial">(<a href="#ref-cleveland1988locally" role="doc-biblioref">Cleveland and Devlin 1988</a>; <a href="#ref-luers1971polynomial" role="doc-biblioref">Luers and Wenning 1971</a>)</span> is one tool that can be used to approximate the background. <a href="#fig-profile-baseline-poly" class="quarto-xref">Figure&nbsp;6</a> illustrates the original spectra for the first sample, the background as modeled by a polynomial smoother, and the corrected spectra. Notice that the corrected spectra are now more anchored with intensities at or near zero.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-profile-baseline-poly" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="80%">
+<div id="fig-profile-baseline-poly" class="quarto-figure quarto-figure-center anchored" width="80%" data-fig-align="center" data-fig-pos="t!">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-profile-baseline-poly-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-profile-baseline-poly-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%">
+<img src="figures/fig-profile-baseline-poly-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-profile-baseline-poly-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7: The distribution standard deviation of intensity measurements across wavenumbers.
+Figure&nbsp;6: The distribution standard deviation of intensity measurements across wavenumbers.
 </figcaption></figure>
 </div>
 </div>
 </div>
-<p>Another source of noise for these data is apparent in the variation of the intensity measurements across wavelengths within a spectrum. This is illustrated by the jagged profile illustrated in the “Original” and “Corrected” panels of Figure <a href="#fig-profile-baseline-poly" class="quarto-xref">Figure&nbsp;7</a>. Smoothing splines and moving averages are two commonly used tools for reducing this type of noise. The moving average is computed at each point by averaging a specified number of values about that point. For example, the moving average of size 10 would replace each point with the average of the ten points before and after the selected point. The original curve becomes smoother as the number of points averaged together becomes larger. Therefore, we need to be careful with the number of points chosen for the smoothing process. Too few points may not remove enough noise while too many may remove important signals.</p>
-<p>The Savitzky-Golay procedure <span class="citation" data-cites="savitzky1964smoothing stevens2022">(<a href="#ref-savitzky1964smoothing" role="doc-biblioref">Savitzky and Golay 1964</a>; <a href="#ref-stevens2022" role="doc-biblioref">Stevens and Ramirez-Lopez 2022</a>)</span> is designed to remove spurious signals by simultaneously smoothing the data while also centering the overall signal and dampening variability. The procedure is governed by the order of differentiation, degree of polynomial, and window size. <a href="#fig-sg-filtering" class="quarto-xref">Figure&nbsp;8</a> compares the impact of this procedure for differentiation order of 1 or 2, polynomial order of 2, and a small (15) or large (49) window size.</p>
-<div class="cell" data-layout-align="center" data-hash="_cache/fig-sg-filtering_977e14d06f38f2a0e969f9ac937e937a">
+<p>Another source of noise for these data is apparent in the variation of the intensity measurements across wavelengths within a spectrum. This is illustrated by the jagged profile illustrated in the “Original” and “Corrected” panels of <a href="#fig-profile-baseline-poly" class="quarto-xref">Figure&nbsp;6</a>. Smoothing splines and moving averages are two commonly used tools for reducing this type of noise. The moving average is computed at each point by averaging a specified number of values about that point. For example, the moving average of size 10 would replace each point with the average of the ten points before and after the selected point. The original curve becomes smoother as the number of points averaged together becomes larger. Therefore, we must be careful with the number of points chosen for the smoothing process. Too few points may not remove enough noise, while too many may remove important signals.</p>
+<p>The Savitzky-Golay procedure <span class="citation" data-cites="savitzky1964smoothing stevens2022">(<a href="#ref-savitzky1964smoothing" role="doc-biblioref">Savitzky and Golay 1964</a>; <a href="#ref-stevens2022" role="doc-biblioref">Stevens and Ramirez-Lopez 2022</a>)</span> is designed to remove spurious signals by simultaneously smoothing the data while also centering the overall signal and dampening variability. The procedure is governed by the order of differentiation, degree of polynomial, and window size. <a href="#fig-sg-filtering" class="quarto-xref">Figure&nbsp;7</a> compares the impact of this procedure for differentiation order of 1 or 2, polynomial order of 2, and a small (15) or large (49) window size.</p>
+<div class="cell" data-layout-align="center" data-hash="_cache/fig-sg-filtering_ad0075c131fb31533d323335b6640607">
 <div class="cell-output-display">
-<div id="fig-sg-filtering" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="60%">
+<div id="fig-sg-filtering" class="quarto-figure quarto-figure-center anchored" width="60%" data-fig-align="center" data-fig-pos="t!">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-sg-filtering-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-sg-filtering-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%">
+<img src="figures/fig-sg-filtering-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-sg-filtering-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;8: The impact of the Savitzky-Golay procedure on the Raman spectra.
+Figure&nbsp;7: The impact of the Savitzky-Golay procedure on the Raman spectra.
 </figcaption></figure>
 </div>
 </div>
 </div>
+<p>TODO Kjell please put code bakc in to do these plots</p>
 <p><strong>?@fig-lagged-spectra-across-sets</strong> displays the correlation across the first 1000 wavenumbers for the original data as well as each of the selected Savitzky-Golay transformations. The effect of differentiation and window size on the correlation across the transformed intensities is clear. When comparing first-order differentiation to second-order differentiation, second-order differentiation more rapidly reduces correlation among close wavenumbers up to about the nearest 100 wavenumbers. Increasing the smoothing window also helps smooth the correlation profiles but does not further reduce correlation. We will examine the impact of each of these different smoothing parameter selections on the model performance in the following sections.</p>
-<p>PCA plot on processed data</p>
-</section><section id="sec-modeling" class="level2"><h2 class="anchored" data-anchor-id="sec-modeling">Machine Learning Models</h2>
+<p>For these data, principal component analysis can be conducted on the training set predictors (after centering and scaling the predictors). This can help us understand if there are any unwanted systematic effects in the data (such as differences in reagents, instruments, etc.). <a href="#fig-pca-plot" class="quarto-xref">Figure&nbsp;8</a> shows the results using two components. These components accounted for between 65%-95% of the predictor information, with the exception of the (2, 2, 15) set, which only captured about 45%. With the exception of a single sample, there are no obvious patterns in the results to give us pause (such as clustering). That odd sample, number 34, is the same data point in <a href="#fig-raman-spectra" class="quarto-xref">Figure&nbsp;1</a> with relatively low intensity compared to the other spectra. It is unclear how this would affect the results (if at all), so it was retained in the data set. Later analyses will examine whether this sample is associated with larger residuals.</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div id="fig-pca-plot" class="quarto-figure quarto-figure-center anchored" width="80%" data-fig-align="center" data-fig-pos="t!">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pca-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-pca-plot-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%" data-fig-pos="t!">
+</div>
+<figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-pca-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: Two-component PCA plots for each pre-processing method. One particular sample (#34) has extreme values for the first principal compoent across all pre-processing methods.
+</figcaption></figure>
+</div>
+</div>
+</div>
+</section><section id="sec-modeling" class="level1"><h1>Machine Learning Models</h1>
 <p>Over the past half-century, the number and types of models for relating a set of predictors to a response has rapidly grown. Improvements in computational power and mathematical complexity have been the primary drivers of this increase. Traditionally, model complexity is generally tied to the number of parameters of a model. As the number of model parameters increases, so does the ability of a model to adapt and morph to the relationship between predictors and the response. For example, the basic partial least squares model has one tuning parameter and is effective at finding a linear relationship between predictors and the response. However, this method is ineffective at finding non-linear relationships. In contrast, consider a simple single-layer, feed-forward neural network. This model can easily have many more parameters than the number of predictors. For the example data, the number of predictors already exceeds the number of samples. Therefore, even the simplest of neural network models can overfit the available data without appropriate precautions.</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -345,21 +347,21 @@ Figure&nbsp;8: The impact of the Savitzky-Golay procedure on the Raman spectra.
 </div>
 <div class="callout-body-container callout-body">
 <p>The performance metric that you choose is important; poor choices can guide you to a “correct” answer that might be inappropriate.</p>
-<p>For example, <span class="math inline">\(R^2\)</span> is a measure of correlation but not accuracy. Optimzing it can yeild models that are inaccurate at the high and low regions of the outcome distirbution.</p>
+<p>For example, <span class="math inline">\(R^2\)</span> is a measure of correlation but not accuracy. Optimizing it can yield models that are inaccurate at the high and low regions of the outcome distribution.</p>
 </div>
 </div>
 <p>While there are many models to choose from, we will compare four modeling techniques for this data: partial least squares (PLS), random forest (RF), Cubist, and support vector machines (SVM). These models were selected to illustrate a range of types of models. We will now provide a high-level explanation of each of these models. Please see the references to learn more.</p>
-<section id="partial-least-sqaures" class="level3"><h3 class="anchored" data-anchor-id="partial-least-sqaures">Partial Least Sqaures</h3>
-<p>Spectroscopy data has traditionally been modeled using PLS <span class="citation" data-cites="htet2021pls esmonde2017raman">(<a href="#ref-htet2021pls" role="doc-biblioref">Htet et al. 2021</a>; <a href="#ref-esmonde2017raman" role="doc-biblioref">Esmonde-White et al. 2017</a>)</span>. PLS is a logical technique to use for this type of data because it naturally handles highly correlated predictors. This model seeks to find linear combinations of the original predictors that have an optimal correlation with the response by using as few linear combinations as possible <span class="citation" data-cites="wold2001pls">(<a href="#ref-wold2001pls" role="doc-biblioref">Wold, Sjöström, and Eriksson 2001</a>)</span>. Specifically, PLS finds linear combinations that summarize variability across the predictors while simultaneously finding the combinations that are optimally correlated with the response. One primary tuning parameter for PLS is the number of linear combinations, or latent variables, to retain.</p>
+<section id="partial-least-squares" class="level3"><h3 class="anchored" data-anchor-id="partial-least-squares">Partial Least Squares</h3>
+<p>Spectroscopy data has traditionally been modeled using PLS <span class="citation" data-cites="htet2021pls esmonde2017raman">(<a href="#ref-htet2021pls" role="doc-biblioref">Htet et al. 2021</a>; <a href="#ref-esmonde2017raman" role="doc-biblioref">Esmonde-White et al. 2017</a>)</span>. PLS is a logical technique to use for this type of data because it naturally handles highly correlated predictors. This model seeks to find linear combinations of the original predictors that have an optimal correlation with the response by using as few linear combinations as possible <span class="citation" data-cites="wold2001pls">(<a href="#ref-wold2001pls" role="doc-biblioref">Wold, Sjöström, and Eriksson 2001</a>)</span>. Specifically, PLS finds linear combinations that summarize variability across the predictors while simultaneously optimizing their correlation with the response. The primary tuning parameter for PLS is the number of linear combinations, or latent variables, to retain.</p>
 </section><section id="random-forest" class="level3"><h3 class="anchored" data-anchor-id="random-forest">Random forest</h3>
 <p>Random forest is a recursive partitioning that is built on an ensemble of trees <span class="citation" data-cites="breiman2001random seifert2020application">(<a href="#ref-breiman2001random" role="doc-biblioref">Breiman 2001</a>; <a href="#ref-seifert2020application" role="doc-biblioref">Seifert 2020</a>)</span>. A single tree is constructed by recursively splitting the data into subsets with greater purity in the response. The RF model provides an improvement over a single tree by reducing variance through an ensemble of trees. Specifically, an RF model does the following process many times: selects a bootstrap sample of the data and builds a tree on the bootstrap sample. A randomly selected number of predictors is chosen at each split to construct each tree. An optimal predictor within the sample is selected, and the routine proceeds to the next split. Prediction for a new sample is the average value across the entire ensemble of trees. RF has two primary tuning parameters: the number of data points within a tree node required to split the data further and the number of randomly selected predictors for each split (usually referred to as <span class="math inline">\(m_{try}\)</span>).</p>
 </section><section id="cubist" class="level3"><h3 class="anchored" data-anchor-id="cubist">Cubist</h3>
 <p>The Cubist model is also constructed from an initial ensemble of trees but in a very different, more complex way than RF <span class="citation" data-cites="quinlan1987simplifying">(<a href="#ref-quinlan1987simplifying" role="doc-biblioref">Quinlan 1987</a>)</span>. It uses a model tree rather than a partitioning tree as its foundation. The primary difference between a partitioning tree and a model tree is that a model tree constructs a linear model in each terminal node. The paths through the trees to the terminal node are <em>rules</em>, and these rules are further pruned and/or simplified.</p>
 <p>Cubist creates an ensemble of individual rule-based models in a manner that is similar, but not the same as, boosting <span class="citation" data-cites="kuhn2013applied">(<a href="#ref-kuhn2013applied" role="doc-biblioref">Kuhn and Johnson 2013</a>)</span>. Once the ensemble has been completed, predictions from the samples’ closest neighbors in the training set can further adjust the model predictions <span class="citation" data-cites="Quinlan1993p1150">(<a href="#ref-Quinlan1993p1150" role="doc-biblioref">Quinlan 1993</a>)</span>. Cubist has two tuning parameters: the number of committees and the number of nearest neighbors.</p>
 </section><section id="support-vector-machines" class="level3"><h3 class="anchored" data-anchor-id="support-vector-machines">Support vector machines</h3>
-<p>Support vector machines is a modeling technique that uncovers the relationship between the predictors and the response using samples that lie outside of a conceptual margin (a boundary about the optimal relationship) <span class="citation" data-cites="drucker1996support ullah2018raman">(<a href="#ref-drucker1996support" role="doc-biblioref">Drucker et al. 1996</a>; <a href="#ref-ullah2018raman" role="doc-biblioref">Ullah et al. 2018</a>)</span>. Several nonlinear versions of SVMs exist; the one implemented in this analysis uses a radial basis function (RBF). For the radial-basis SVM, the number of samples allowed to be outside of the margin is controlled by the cost parameter, and the RBF dispersion parameter controls the surface’s flexibility. Therefore, the radial basis SVM has the flexibility to identify a non-linear relationship between the predictors and the response.</p>
+<p>Support vector machines are a modeling technique that uncovers the relationship between the predictors and the response using samples that lie outside of a conceptual margin (a boundary about the optimal relationship) <span class="citation" data-cites="drucker1996support ullah2018raman">(<a href="#ref-drucker1996support" role="doc-biblioref">Drucker et al. 1996</a>; <a href="#ref-ullah2018raman" role="doc-biblioref">Ullah et al. 2018</a>)</span>. Several nonlinear versions of SVMs exist; the one implemented in this analysis uses a radial basis function (RBF). For the radial-basis SVM, the number of samples allowed to be outside of the margin is controlled by the cost parameter, and the RBF dispersion parameter controls the surface’s flexibility. Therefore, the radial basis SVM has the flexibility to identify a non-linear relationship between the predictors and the response.</p>
 <p>SVMs are the most difficult to tune out of the four models described here. The two tuning parameters tend to exhibit traditional interaction effects so that there can be a small region of good performance within a larger area of unsuitable models; see, for example, <a href="https://www.tmwr.org/iterative-search#svm">Section 14.1</a> of <span class="citation" data-cites="tmwr">Kuhn and Silge (<a href="#ref-tmwr" role="doc-biblioref">2022</a>)</span>.</p>
-</section></section><section id="modeling-strategy" class="level2"><h2 class="anchored" data-anchor-id="modeling-strategy">Modeling Strategy</h2>
+</section></section><section id="modeling-strategy" class="level1"><h1>Modeling Strategy</h1>
 <p>For each model, a set of 25 tuning parameter combinations are evaluated. For PLS and random forest, we’ll only tune a single parameter (the number of PLS components and <span class="math inline">\(m_{try}\)</span>, respectively). For support vector and Cubist models, a space-filling design <span class="citation" data-cites="joseph2016space">(<a href="#ref-joseph2016space" role="doc-biblioref">Joseph 2016</a>)</span> is used to create two-dimensional grids of the parameter space for each model. These grids are created using Latin hypercube designs that fill the rectangular parameter space. They often use an additional criterion to reduce the chances that any of the tuning parameter combinations are too close (i.e., redundant). The <em>modeling process</em> has 3-4 parameters: 1-2 from the models themselves and two from the pre-processing (i.e., differentiation order and the smoothing window size).</p>
 <p>For each tuning parameter combination, 5 repeats of 10-fold cross-validation are used to appropriately estimate the RMSE for future samples. We will examine the relationship between the tuning parameters and the estimated RMSE to help understand the performance patterns and to choose reasonable values for the parameters.</p>
 <div class="callout callout-style-default callout-important callout-titled">
@@ -375,14 +377,14 @@ Figure&nbsp;8: The impact of the Savitzky-Golay procedure on the Raman spectra.
 <p>Despite the literature, optimizing hyper-parameters using grid search is effective and can be very efficient using advanced (but easy to use) computational and statistical methods</p>
 </div>
 </div>
-<p>One computational tool for grid search is parallel processing. None of the 1,250 models estimated in the grid search depend on the other and, as such, can be executed simultaneously on different computer CPU cores. Software can seamlessly facilitate this and it is not uncommon to see 5-fold reductions in the computational time using this method <span class="citation" data-cites="tmwr">(<a href="#ref-tmwr" role="doc-biblioref">Kuhn and Silge 2022</a>)</span>.</p>
-<p>Also, there are statistical methods to evaluate 25 models without having to estimate all of them. For example, for some models, the most complex model can be fit, and results from sub-models can be derived at no extra cost. For example, if a Cubist model is created with an ensemble size of 50, we can get predictions from the same model for sizes 1 - 40 at no computational cost. Additionally, racing methods <span class="citation" data-cites="kuhn2014futility">(<a href="#ref-kuhn2014futility" role="doc-biblioref">Kuhn 2014</a>)</span> can conduct interim analyses during grid search and remove tuning parameter combinations that are unlikely to be chosen as the best results.</p>
-<p>Finally, grid search had been considered inefficient because of the assumption that regular (i.e., full factorial) grids were used. If we evaluated <span class="math inline">\(L\)</span> values of each of <span class="math inline">\(M\)</span> tuning parameters, the full factorial set of <span class="math inline">\(L^M\)</span> combinations can become very large. This is no surprise to most CMC statisticians and engineers. However, as previously mentioned, the better design choices for grid search are space-filling designs. It is difficult to quantify the positive impact these designs have had on optimizing models, both in terms of efficiency and efficacy. <a href="#fig-sfd" class="quarto-xref">Figure&nbsp;9</a> shows an example Audze-Eglais design from <span class="citation" data-cites="husslage2011space">Husslage et al. (<a href="#ref-husslage2011space" role="doc-biblioref">2011</a>)</span> for the two Cubist tuning parameters and 25 candidate points.</p>
-<div class="cell" data-layout-align="center" data-hash="_cache/fig-sfd_3eeec0fe4cf31927cfc3cf21f91ff409">
+<p>One computational tool for grid search is parallel processing. None of the 1,250 models estimated in the grid search depend on the other and, as such, can be executed simultaneously on different computer CPU cores. Software can seamlessly facilitate this, and it is not uncommon to see at least 5-fold reductions in the computational time using this method <span class="citation" data-cites="tmwr">(<a href="#ref-tmwr" role="doc-biblioref">Kuhn and Silge 2022</a>)</span>.</p>
+<p>Also, there are statistical methods to evaluate 25 models without having to estimate all of them. For example, for some models, the most complex model can be fit, and results from sub-models can be derived at no extra cost. For example, if a Cubist model is created with an ensemble size of 50, we can get predictions from the same model for sizes 1 - 49 at negligible computational cost. Additionally, racing methods <span class="citation" data-cites="kuhn2014futility">(<a href="#ref-kuhn2014futility" role="doc-biblioref">Kuhn 2014</a>)</span> can conduct interim analyses during grid search and remove tuning parameter combinations that are unlikely to be chosen as the best results. This can enable users to screen a large number of models and pre-processing methods quickly.</p>
+<p>Finally, grid search had been considered inefficient because of the assumption that regular (i.e., full factorial) grids were used. If we evaluated <span class="math inline">\(L\)</span> values of each of <span class="math inline">\(M\)</span> tuning parameters, the full factorial set of <span class="math inline">\(L^M\)</span> combinations can become very large. This is no surprise to most CMC statisticians and engineers. However, as previously mentioned, the better design choices for grid search are space-filling designs. It is difficult to quantify the positive impact these designs have had on optimizing models in terms of efficiency and efficacy. <a href="#fig-sfd" class="quarto-xref">Figure&nbsp;9</a> shows an example Audze-Eglais design from <span class="citation" data-cites="husslage2011space">Husslage et al. (<a href="#ref-husslage2011space" role="doc-biblioref">2011</a>)</span> for the two Cubist tuning parameters and 25 candidate points.</p>
+<div class="cell" data-layout-align="center" data-hash="_cache/fig-sfd_578dcec9fdf623c7e119052d149bafd8">
 <div class="cell-output-display">
-<div id="fig-sfd" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="45%">
+<div id="fig-sfd" class="quarto-figure quarto-figure-center anchored" width="45%" data-fig-align="center" data-fig-pos="t!">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-sfd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-sfd-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:45.0%">
+<img src="figures/fig-sfd-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:45.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-sfd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;9: An example of a space-filling design for two tuning parameters in a Cubist model.
@@ -390,14 +392,14 @@ Figure&nbsp;9: An example of a space-filling design for two tuning parameters in
 </div>
 </div>
 </div>
-<p>An alternate tool called Bayesian optimization <span class="citation" data-cites="gramacy2020surrogates">(<a href="#ref-gramacy2020surrogates" role="doc-biblioref">Gramacy 2020</a>)</span> was used to optimize the support vector machine models. It starts with a small grid of results, in our case, a space-filling design with ten tuning parameter combinations. These initial results create a Gaussian Process model <span class="citation" data-cites="rasmussen2006gaussian">(<a href="#ref-rasmussen2006gaussian" role="doc-biblioref">Rasmussen, Williams, et al. 2006</a>)</span> where the resampled RMSE values are the outcome and the SVM tuning parameters (cost and RBF dispersion) are used as predictors. The model then predicts the next tuning parameter combination to resample. Once those results are available, the process repeats. Fifteen iterations of this iterative optimization process were used to evaluate a total of 25 tuning parameter combinations for the SVM models.</p>
-</section><section id="model-tuning-results" class="level2"><h2 class="anchored" data-anchor-id="model-tuning-results">Model Tuning Results</h2>
-<p>First, let’s examine the PLS and RF model results. Each optimized a single model parameter. <a href="#fig-pls-rf-tune-profiles" class="quarto-xref">Figure&nbsp;10</a> (left) illustrates the tuning parameter profiles across the number of components that were evaluated for the original spectra as well as the different Savitzky-Golay pre-processed spectra. RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed. The model with the lowest RMSE uses the SG filter with parameterization of first order differentiation, second order polynomial, and a small window size (1, 2, 15), and 12 components.</p>
+<p>An alternate tool called Bayesian optimization <span class="citation" data-cites="gramacy2020surrogates">(<a href="#ref-gramacy2020surrogates" role="doc-biblioref">Gramacy 2020</a>)</span> was used to optimize the support vector machine models. It starts with a small grid of results, in our case, a space-filling design with ten tuning parameter combinations. These initial results are used as substrate for a Gaussian Process (GP) model <span class="citation" data-cites="rasmussen2006gaussian">(<a href="#ref-rasmussen2006gaussian" role="doc-biblioref">Rasmussen, Williams, et al. 2006</a>)</span> where the resampled RMSE values are the outcomes, and the SVM tuning parameters (cost and RBF dispersion) are the predictors. The GP then predicts the next tuning parameter combination to resample. Once those results are available, the process repeats. Fifteen iterations of this iterative optimization process were used to evaluate a total of 25 tuning parameter combinations for the SVM models.</p>
+</section><section id="model-tuning-results" class="level1"><h1>Model Tuning Results</h1>
+<p>First, let’s examine the PLS and RF model results. Each optimized a single model parameter. <a href="#fig-pls-rf-tune-profiles" class="quarto-xref">Figure&nbsp;10</a> (left) illustrates the tuning parameter profiles across the number of components evaluated for the original spectra and the different Savitzky-Golay pre-processed spectra. RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed. The model with the lowest RMSE uses the SG filter with parameterization of first-order differentiation, second-order polynomial, and a small window size (1, 2, 15), and 12 components.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-pls-rf-tune-profiles" class="quarto-figure quarto-figure-center anchored" width="90%">
+<div id="fig-pls-rf-tune-profiles" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="90%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pls-rf-tune-profiles-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-pls-rf-tune-profiles-1.svg" class="img-fluid figure-img" style="width:90.0%">
+<img src="figures/fig-pls-rf-tune-profiles-1.svg" class="img-fluid figure-img" style="width:90.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-pls-rf-tune-profiles-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;10: The tuning parameter profiles for partial least squares and random forest.
@@ -405,13 +407,13 @@ Figure&nbsp;10: The tuning parameter profiles for partial least squares and rand
 </div>
 </div>
 </div>
-<p><a href="#fig-pls-rf-tune-profiles" class="quarto-xref">Figure&nbsp;10</a> (right) displays the tuning parameter profile for the RF model. We can see from this figure that as the value of the <span class="math inline">\(m_{try}\)</span> is fairly irrelevant so long as a sufficiently large proportion of predictors are randomly sampled. The numerically best ranodm forest model used 1,273 predictors with pre-processing strategy (2, 2, 49), although there is obviously a range of values with the same performance (as well as another pre-processor).</p>
+<p><a href="#fig-pls-rf-tune-profiles" class="quarto-xref">Figure&nbsp;10</a> (right) displays the tuning parameter profile for the RF model. We can see from this figure that as the value of the <span class="math inline">\(m_{try}\)</span> is fairly irrelevant so long as a sufficiently large proportion of predictors are randomly sampled. The numerically best random forest model used 1,273 predictors with pre-processing strategy (2, 2, 49), although there is obviously a range of values with the same performance (as well as another pre-processor).</p>
 <p>Also, the predictor set with the best RMSE is the same as the set identified using PLS. However, the optimal RF model (RMSE = 3.08) performs poorly compared to the optimal PLS model (RMSE = 1.77).</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-svm-search" class="quarto-figure quarto-figure-center anchored" width="90%">
+<div id="fig-svm-search" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="90%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-svm-search-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-svm-search-1.svg" class="img-fluid figure-img" style="width:90.0%">
+<img src="figures/fig-svm-search-1.svg" class="img-fluid figure-img" style="width:90.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-svm-search-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;11: Progress of Bayesian optimization for the SVM parameters. Iteration zero reflects the best candidate value from the intial grid search.
@@ -424,9 +426,9 @@ Figure&nbsp;11: Progress of Bayesian optimization for the SVM parameters. Iterat
 <p><a href="#fig-all-optimal-models" class="quarto-xref">Figure&nbsp;12</a> displays the cross-validated RMSE values corresponding to each model’s optimal tuning parameter settings. There are several important findings that this figure reveals. First, the SVM and RF models have improved predictive performance when the SG pre-processing is applied. On the other hand, the PLS and Cubist models are not substantially improved with this pre-processing. In fact, the performance can be made worse if second-order differentiation is applied.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-all-optimal-models" class="quarto-figure quarto-figure-center anchored" width="75%">
+<div id="fig-all-optimal-models" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="75%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-all-optimal-models-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-all-optimal-models-1.svg" class="img-fluid figure-img" style="width:75.0%">
+<img src="figures/fig-all-optimal-models-1.svg" class="img-fluid figure-img" style="width:75.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-all-optimal-models-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;12: Cross-validation predictive performance using the optimal tuning parameter settings for each predictor set and model. The colored regions are approximate 90% confidence intervals.
@@ -434,12 +436,12 @@ Figure&nbsp;12: Cross-validation predictive performance using the optimal tuning
 </div>
 </div>
 </div>
-<p>Across the five pre-processing sets and four models, let’s compare the the observed versus predicted values for the PLS, Cubist, and SVM models with the unprocessed and two variations of the SG pre-processed data (1, 2, 15 and 2, 2, 15). <a href="#fig-obs-pred-cv-comparison" class="quarto-xref">Figure&nbsp;13</a> highlights some interesting characteristics across the models and predictor sets. First, we see that the SVM model cannot decipher the relationship between predictors and the response when the data is not pre-processed. In fact, it is challenging for SVM models to find predictive signals when there are many correlated predictors in the data [REFS]. Next, one particular sample is challenging for the PLS model to fit when the predictors are not pre-processed or when there is some pre-processing (2, 2, 15). For the Cubist model, this same sample is better predicted by the model with no pre-processing and less well predicted with either of the pre-processed data sets. What this means is that the same pre-processing approach is rarely effective across all models. Instead, many model types evaluated across a range of tuning parameters along with a variety of pre-processing conditions need to be evaluated in order to find the optimal model,</p>
+<p>Across the five pre-processing sets and four models, let’s compare the observed versus predicted values for the PLS, Cubist, and SVM models with the unprocessed and two variations of the SG pre-processed data (1, 2, 15, and 2, 2, 15). <a href="#fig-obs-pred-cv-comparison" class="quarto-xref">Figure&nbsp;13</a> highlights some interesting characteristics across the models and predictor sets. First, we see that the SVM model cannot decipher the relationship between predictors and the response when the data is not pre-processed. In fact, it is challenging for SVM models to find predictive signals when there are many correlated predictors in the data [REFS]. Next, one particular sample is challenging for the PLS model to fit when the predictors are not pre-processed or when there is some pre-processing (2, 2, 15). For the Cubist model, this same sample is better predicted by the model with no pre-processing and less well predicted with either of the pre-processed data sets. What this means is that the same pre-processing approach is rarely effective across all models. Instead, many model types evaluated across a range of tuning parameters along with a variety of pre-processing conditions need to be evaluated in order to find the optimal model,</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-obs-pred-cv-comparison" class="quarto-figure quarto-figure-center anchored">
+<div id="fig-obs-pred-cv-comparison" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-obs-pred-cv-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-obs-pred-cv-comparison-1.svg" class="img-fluid figure-img">
+<img src="figures/fig-obs-pred-cv-comparison-1.svg" class="img-fluid figure-img" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-obs-pred-cv-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;13: Comparison of observed versus hold-out predicted values from cross-validation for the optimal tuning parameter settings for three models and three pre-processing combinations. One challenging sample to predict is highlighted in red.
@@ -460,6 +462,8 @@ Figure&nbsp;13: Comparison of observed versus hold-out predicted values from cro
 <p>It is a common situation when multiple tuning parameter combinations have approximately the same level of performance. Likewise, it is rare that a single type of model completely outclasses the others.</p>
 </div>
 </div>
+<p>We must pick a pre-processing scheme and model type to define the official model. We’ll pick the PLS model with 12 components and the (1, 2, 15) pre-processing settings. The performance of this model is exceptional, especially given that a linear model has limited complexity (generally, simpler is better). The final model fit uses the optimized tuning parameters in conjunction with the entire training set of 45 samples.</p>
+<p>As an alternative to choosing a single, final model, a <em>stacking ensemble</em> could be used to selectively blend all of our existing models (and pre-processing methods) into a single model fit. These models can dynamically choose which methods to include or exclude to maximize performance <span class="citation" data-cites="breiman1996stacked smyth1999linearly">(<a href="#ref-breiman1996stacked" role="doc-biblioref">Breiman 1996</a>; <a href="#ref-smyth1999linearly" role="doc-biblioref">Smyth and Wolpert 1999</a>)</span>.</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -470,11 +474,28 @@ Figure&nbsp;13: Comparison of observed versus hold-out predicted values from cro
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Ensembles are only for minimal gains with large training sets.</p>
+<p>Stacking is worth trying if the training set is large. In these situations, it typically yields ensembles with slightly better results. Its importance has been inflated due to success in machine learning competitions.</p>
 </div>
 </div>
-</section><section id="test-set-results" class="level2"><h2 class="anchored" data-anchor-id="test-set-results">Test Set Results</h2>
-</section><section id="post-modeling-activities" class="level2"><h2 class="anchored" data-anchor-id="post-modeling-activities">Post-Modeling Activities</h2>
+<p>Now that we have the official model fit, we verify the results using the test set.</p>
+</section><section id="test-set-results" class="level1"><h1>Test Set Results</h1>
+<p><a href="#fig-test" class="quarto-xref">Figure&nbsp;14</a> shows the observed and predicted drug product concentrations for the 15 samples in the test set. The sample size is small, but there does appear to be some excess variation in the predictors for smaller values. Despite this, the results appear reasonably good.</p>
+<p>The resulting test set RMSE was 1.93 (compared to the resampling estimate of 1.77). The corresponding test set <span class="math inline">\(R^2\)</span> was 95.8%.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-test" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="50%">
+<figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-test-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-test-1.svg" class="img-fluid figure-img" style="width:50.0%" data-fig-pos="t!">
+</div>
+<figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-test-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;14: Observed and predicted values for the test set.
+</figcaption></figure>
+</div>
+</div>
+</div>
+</section><section id="post-modeling-activities" class="level1"><h1>Post-Modeling Activities</h1>
+<p>Assuming our final model will be used on additional unknown samples in the future, there are a few more tasks. First is documentation. This should involve descriptions of the training and test sets, their provenance, the process of optimizing and choosing the final model, and a description of its use case.</p>
+<p>The amount of documentation and what should be included really depends on how the predictions will be used and by whom. Speaking from experience regarding models for absorption, distribution, metabolism, excretion, and toxicology (ADMET) endpoints, the consumers of the model predictions were very focused on results for yet-to-be-synthesized molecules. Inconsistencies in predictions (real or perceived) could lead to intense interest in the model’s particulars. Good documentation about what the model was good for (and not suitable for) was critical. <em>Model Cards</em> <span class="citation" data-cites="mitchell2019model">(<a href="#ref-mitchell2019model" role="doc-biblioref">Mitchell et al. 2019</a>)</span> offer a good template for getting started.</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -485,22 +506,51 @@ Figure&nbsp;13: Comparison of observed versus hold-out predicted values from cro
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><em>Models</em> do not drift; data can change over time, as can the population being predicted. Tools called applicability domain methods help measure how far (if at all) a new sample is from the original training set (i.e., extrapolation). These values can accompany a new sample prediction to help gauge how dodgy a new sample may be.</p>
+<p>The model’s intended use, called its applicability, is important to define and document. If a wide variety of people can access the model, it is hard to control who will use it and for what purpose. Setting intentional limits of relevance is a good idea.</p>
 </div>
 </div>
-</section><section id="conclusions" class="level2"><h2 class="anchored" data-anchor-id="conclusions">Conclusions</h2>
-</section><section id="software-and-data" class="level2"><h2 class="anchored" data-anchor-id="software-and-data">Software and Data</h2>
-</section><section id="references" class="level2 unnumbered">
+<p>In some cases, it may be necessary to explain, to some extent, how the model works and why it made specific predictions. Unfortunately, these questions may be asked if a prediction does not meet preconceived expectations. Simpler models, such as PLS, are easier to explain. Regardless of model complexity, there is a rich field of research on model explainers. See, for example, <span class="citation" data-cites="molnar2020interpretable">Molnar (<a href="#ref-molnar2020interpretable" role="doc-biblioref">2020</a>)</span> and <span class="citation" data-cites="biecek2021explanatory">Biecek and Burzykowski (<a href="#ref-biecek2021explanatory" role="doc-biblioref">2021</a>)</span> for tools to help users understand the model and its results. Finally, if a model is put into production, we need to make sure that it is still meeting its stated goals (i.e., applicability). If more labeled samples are being accrued, a protocol for monitoring performance over time is critical in case the performance statistics begin to drift away from their original resampling/test set estimates.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<strong>WTF</strong>
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><em>Models</em> do not drift; data can change over time, as can the population being predicted. Tools called applicability domain methods <span class="citation" data-cites="netzeva2005current gadaleta2016applicability">(<a href="#ref-netzeva2005current" role="doc-biblioref">Netzeva et al. 2005</a>; <a href="#ref-gadaleta2016applicability" role="doc-biblioref">Gadaleta et al. 2016</a>)</span> help measure how far (if at all) a new sample is from the original training set (i.e., extrapolation). These values can accompany a new sample prediction to help gauge how dodgy a new sample may be.</p>
+</div>
+</div>
+<p>The nature of drug discovery causes the type, structure, and characteristics of molecules to change over time; medicinal chemists are designing therapies that are entirely different from those created in decades past. Physiochemical properties fluctuate over time; knowing how the model handles these changes is vital.</p>
+<p>There is also the idea of <em>concept drift</em>: the purpose of a model can also change. For example, suppose that we develop an ADMET ML model for predicting blood-brain barrier permeation based on existing therapeutic areas. Suppose that the company purchases other discovery groups with a strong neuroscience group (where there was none previously). The original model was intended to tell when a molecule unintentionally crossed the barrier. Now, there is increased interest in molecules that should cross the barrier. At this point, an assessment should be made as to whether a separate model is required for each use case.</p>
+</section><section id="conclusions" class="level1"><h1>Conclusions</h1>
+</section><section id="software-and-data" class="level1"><h1>Software and Data</h1>
+<p>The code and data used to create this tutorial are found at <a href="https://github.com/kjell-stattenacity/Tutorial"><code>https://github.com/kjell-stattenacity/Tutorial</code></a>.</p>
+<p><a href="http://cran.r-project.org">R version 4.3.1 (2023-06-16)</a> was used to create the analyses, and <a href="https://quarto.org">Quarto version 1.4.376</a> was used to create the pre-print document and website. The GitHub repository lists specific R package versions that were used.</p>
 
-</section></section><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+</section><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-Abdi2010p3532" class="csl-entry" role="listitem">
+Abdi, Herve, and Lynne Williams. 2010. <span>“Principal Component Analysis.”</span> <em>Wiley Interdisciplinary Reviews: Computational Statistics</em> 2 (4): 433–59.
+</div>
 <div id="ref-ali2023hyperparameter" class="csl-entry" role="listitem">
 Ali, Yasser A, Emad Mahrous Awwad, Muna Al-Razgan, and Ali Maarouf. 2023. <span>“Hyperparameter Search for Machine Learning Algorithms for Optimizing the Computational Complexity.”</span> <em>Processes</em> 11 (2): 349.
+</div>
+<div id="ref-biecek2021explanatory" class="csl-entry" role="listitem">
+Biecek, Przemyslaw, and Tomasz Burzykowski. 2021. <em>Explanatory Model Analysis: Explore, Explain, and Examine Predictive Models</em>. CRC Press.
 </div>
 <div id="ref-Borisov2022" class="csl-entry" role="listitem">
 Borisov, Vadim, Tobias Leemann, Kathrin Sessler, Johannes Haug, Martin Pawelczyk, and Gjergji Kasneci. 2022. <span>“Deep Neural Networks and Tabular Data: A Survey.”</span> <em><span>IEEE</span> Transactions on Neural Networks and Learning Systems</em>, 1–21.
 </div>
+<div id="ref-breiman1996stacked" class="csl-entry" role="listitem">
+Breiman, Leo. 1996. <span>“Stacked Regressions.”</span> <em>Machine Learning</em> 24: 49–64.
+</div>
 <div id="ref-breiman2001random" class="csl-entry" role="listitem">
-Breiman, Leo. 2001. <span>“Random Forests.”</span> <em>Machine Learning</em> 45: 5–32.
+———. 2001. <span>“Random Forests.”</span> <em>Machine Learning</em> 45: 5–32.
+</div>
+<div id="ref-charu2018neural" class="csl-entry" role="listitem">
+Charu, Aggarwal. 2018. <em>Neural Networks and Deep Learning: A Textbook</em>. Spinger.
 </div>
 <div id="ref-cleveland1988locally" class="csl-entry" role="listitem">
 Cleveland, William S, and Susan J Devlin. 1988. <span>“Locally Weighted Regression: An Approach to Regression Analysis by Local Fitting.”</span> <em>Journal of the American Statistical Association</em> 83 (403): 596–610.
@@ -517,11 +567,23 @@ Esmonde-White, Karen A, Maryann Cuellar, and Ian R Lewis. 2022. <span>“The Rol
 <div id="ref-esmonde2017raman" class="csl-entry" role="listitem">
 Esmonde-White, Karen A, Maryann Cuellar, Carsten Uerpmann, Bruno Lenain, and Ian R Lewis. 2017. <span>“Raman Spectroscopy as a Process Analytical Technology for Pharmaceutical Manufacturing and Bioprocessing.”</span> <em>Analytical and Bioanalytical Chemistry</em> 409 (3): 637–49.
 </div>
+<div id="ref-gadaleta2016applicability" class="csl-entry" role="listitem">
+Gadaleta, Domenico, Giuseppe Felice Mangiatordi, Marco Catto, Angelo Carotti, and Orazio Nicolotti. 2016. <span>“Applicability Domain for QSAR Models: Where Theory Meets Reality.”</span> <em>International Journal of Quantitative Structure-Property Relationships (IJQSPR)</em> 1 (1): 45–63.
+</div>
+<div id="ref-goodfellow2016deep" class="csl-entry" role="listitem">
+Goodfellow, Ian, Yoshua Bengio, and Aaron Courville. 2016. <em>Deep Learning</em>. MIT press.
+</div>
 <div id="ref-gorishniy2021revisiting" class="csl-entry" role="listitem">
 Gorishniy, Yury, Ivan Rubachev, Valentin Khrulkov, and Artem Babenko. 2021. <span>“Revisiting Deep Learning Models for Tabular Data.”</span> <em>Advances in Neural Information Processing Systems</em> 34: 18932–43.
 </div>
 <div id="ref-gramacy2020surrogates" class="csl-entry" role="listitem">
 Gramacy, Robert B. 2020. <em>Surrogates: Gaussian Process Modeling, Design, and Optimization for the Applied Sciences</em>. CRC press.
+</div>
+<div id="ref-hasan2021missing" class="csl-entry" role="listitem">
+Hasan, Md Kamrul, Md Ashraful Alam, Shidhartho Roy, Aishwariya Dutta, Md Tasnim Jawad, and Sunanda Das. 2021. <span>“Missing Value Imputation Affects the Performance of Machine Learning: A Review and Analysis of the Literature (2010–2021).”</span> <em>Informatics in Medicine Unlocked</em> 27: 100799.
+</div>
+<div id="ref-HastieEtAl2017" class="csl-entry" role="listitem">
+Hastie, T, R Tibshirani, and J Friedman. 2017. <em><span class="nocase">The Elements of Statistical Learning: Data Mining, Inference and Prediction</span></em>. Springer.
 </div>
 <div id="ref-Hawkins2004p1" class="csl-entry" role="listitem">
 Hawkins, D. 2004. <span>“The Problem of Overfitting.”</span> <em>Journal of Chemical Information and Computer Sciences</em> 44 (1): 1–12.
@@ -562,11 +624,23 @@ Kuhn, Max, and Julia Silge. 2022. <em>Tidy Modeling with <span>R</span></em>. O�
 <div id="ref-luers1971polynomial" class="csl-entry" role="listitem">
 Luers, James K, and Robert H Wenning. 1971. <span>“Polynomial Smoothing—Linear Vs Cubic.”</span> <em>Technometrics</em> 13 (3): 589–600.
 </div>
+<div id="ref-Massy1965p234" class="csl-entry" role="listitem">
+Massy, William. 1965. <span>“Principal Components Regression in Exploratory Statistical Research.”</span> <em>Journal of the American Statistical Association</em> 60: 234–46.
+</div>
+<div id="ref-mitchell2019model" class="csl-entry" role="listitem">
+Mitchell, Margaret, Simone Wu, Andrew Zaldivar, Parker Barnes, Lucy Vasserman, Ben Hutchinson, Elena Spitzer, Inioluwa Deborah Raji, and Timnit Gebru. 2019. <span>“Model Cards for Model Reporting.”</span> In <em>Proceedings of the Conference on Fairness, Accountability, and Transparency</em>, 220–29.
+</div>
+<div id="ref-molnar2020interpretable" class="csl-entry" role="listitem">
+Molnar, Christoph. 2020. <em>Interpretable Machine Learning</em>. Independently published.
+</div>
 <div id="ref-nahm2022receiver" class="csl-entry" role="listitem">
 Nahm, Francis Sahngun. 2022. <span>“Receiver Operating Characteristic Curve: Overview and Practical Use for Clinicians.”</span> <em>Korean Journal of Anesthesiology</em> 75 (1): 25–36.
 </div>
 <div id="ref-neter1996applied" class="csl-entry" role="listitem">
 Neter, John, Michael H Kutner, Christopher J Nachtsheim, William Wasserman, et al. 1996. <span>“Applied Linear Statistical Models.”</span>
+</div>
+<div id="ref-netzeva2005current" class="csl-entry" role="listitem">
+Netzeva, Tatiana I, Andrew P Worth, Tom Aldenberg, Romualdo Benigni, Mark TD Cronin, Paola Gramatica, Joanna S Jaworska, et al. 2005. <span>“Current Status of Methods for Defining the Applicability Domain of (Quantitative) Structure-Activity Relationships.”</span> <em>Alternatives to Laboratory Animals</em> 33 (2): 155–73.
 </div>
 <div id="ref-quinlan1987simplifying" class="csl-entry" role="listitem">
 Quinlan, J. Ross. 1987. <span>“Simplifying Decision Trees.”</span> <em>International Journal of Man-Machine Studies</em> 27 (3): 221–34.
@@ -591,6 +665,9 @@ Shwartz-Ziv, Ravid, and Amitai Armon. 2022. <span>“Tabular Data: Deep Learning
 </div>
 <div id="ref-silge2022trends" class="csl-entry" role="listitem">
 Silge, A, Karina Weber, D Cialla-May, L Müller-Bötticher, D Fischer, and J Popp. 2022. <span>“Trends in Pharmaceutical Analysis and Quality Control by Modern Raman Spectroscopic Techniques.”</span> <em>TrAC Trends in Analytical Chemistry</em> 153: 116623.
+</div>
+<div id="ref-smyth1999linearly" class="csl-entry" role="listitem">
+Smyth, Padhraic, and David Wolpert. 1999. <span>“Linearly Combining Density Estimators via Stacking.”</span> <em>Machine Learning</em> 36: 59–83.
 </div>
 <div id="ref-stevens2022" class="csl-entry" role="listitem">
 Stevens, Antoine, and Leornardo Ramirez-Lopez. 2022. <em>An Introduction to the Prospectr Package</em>.

@@ -250,6 +250,18 @@ pca_var_1 <-
   as_tibble() 
 
 # ------------------------------------------------------------------------------
+# Final results
+
+best_pls_1 <- 
+  select_best(pls_tune_1, metric = "rmse")
+
+final_wflow <- 
+  pls_wflow_1 %>% 
+  finalize_workflow(best_pls_1)
+
+final_fit <- last_fit(final_wflow, split = split_1)
+
+# ------------------------------------------------------------------------------
 # Collate results for this pre-processing configuration
 
 res_1 <- ls(pattern = "(_metrics_1)|(_pred_1)")
@@ -257,6 +269,9 @@ save(list = res_1, file = "RData/preproc_results_1.RData", compress = TRUE)
 
 res_pca_1 <- ls(pattern = "^pca_")
 save(list = res_pca_1, file = "RData/pca_results_1.RData", compress = TRUE)
+
+save(final_fit, file = "RData/final_fit.RData", compress = TRUE)
+
 
 # ------------------------------------------------------------------------------
 

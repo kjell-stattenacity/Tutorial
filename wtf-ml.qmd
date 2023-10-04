@@ -47,6 +47,7 @@ load("RData/data_long.RData")
 load("RData/data_wide.RData")
 load("RData/processed_data.RData")
 load("RData/all_results.RData")
+load("RData/final_fit.RData")
 ```
 
 (This is a preprint of an article submitted to a _Pharmaceutical Statistics_ special nonclinical tutorial edition)
@@ -326,7 +327,7 @@ ggplot(orig_data,
 ```
 
 
-Another source of noise for these data is apparent in the variation of the intensity measurements across wavelengths within a spectrum.  This is illustrated by the jagged profile illustrated in the "Original" and "Corrected" panels of Figure @fig-profile-baseline-poly.  Smoothing splines and moving averages are two commonly used tools for reducing this type of noise.  The moving average is computed at each point by averaging a specified number of values about that point.  For example, the moving average of size 10 would replace each point with the average of the ten points before and after the selected point.  The original curve becomes smoother as the number of points averaged together becomes larger.  Therefore, we must be careful with the number of points chosen for the smoothing process.  Too few points may not remove enough noise, while too many may remove important signals.
+Another source of noise for these data is apparent in the variation of the intensity measurements across wavelengths within a spectrum.  This is illustrated by the jagged profile illustrated in the "Original" and "Corrected" panels of @fig-profile-baseline-poly.  Smoothing splines and moving averages are two commonly used tools for reducing this type of noise.  The moving average is computed at each point by averaging a specified number of values about that point.  For example, the moving average of size 10 would replace each point with the average of the ten points before and after the selected point.  The original curve becomes smoother as the number of points averaged together becomes larger.  Therefore, we must be careful with the number of points chosen for the smoothing process.  Too few points may not remove enough noise, while too many may remove important signals.
 
 The Savitzky-Golay procedure [@savitzky1964smoothing;@stevens2022] is designed to remove spurious signals by simultaneously smoothing the data while also centering the overall signal and dampening variability.  The procedure is governed by the order of differentiation, degree of polynomial, and window size.  @fig-sg-filtering compares the impact of this procedure for differentiation order of 1 or 2, polynomial order of 2, and a small (15) or large (49) window size.
 
@@ -666,10 +667,7 @@ all_pred %>%
 It is a common situation when multiple tuning parameter combinations have approximately the same level of performance. Likewise, it is rare that a single type of model completely outclasses the others. 
 :::
 
-TODO model selection and finalization
-
-TODO interpretation
-
+We must pick a pre-processing scheme and model type to define the official model. We'll pick the PLS model with `r best_pls$num_comp[which.min(best_pls$mean)]` components and the `r best_pls$Pre[which.min(best_pls$mean)]` pre-processing settings. The performance of this model is exceptional, especially given that a linear model has limited complexity (generally, simpler is better). The final model fit uses the optimized tuning parameters in conjunction with the entire training set of `r nrow(analysis(final_fit$splits[[1]]))` samples. 
 
 As an alternative to choosing a single, final model, a _stacking ensemble_ could be used to selectively blend all of our existing models (and pre-processing methods) into a single model fit. These models can dynamically choose which methods to include or exclude to maximize performance [@breiman1996stacked;@smyth1999linearly]. 
 
@@ -678,19 +676,56 @@ As an alternative to choosing a single, final model, a _stacking ensemble_ could
 Stacking is worth trying if the training set is large. In these situations, it typically yields ensembles with slightly better results. Its importance has been inflated due to success in machine learning competitions. 
 :::
 
+Now that we have the official model fit, we verify the results using the test set.  
 
 # Test Set Results
 
+@fig-test shows the observed and predicted drug product concentrations for the `r nrow(collect_predictions(final_fit))` samples in the test set. The sample size is small, but there does appear to be some excess variation in the predictors for smaller values. Despite this, the results appear reasonably good.  
 
+The resulting test set RMSE was `r format(show_best(final_fit, metric = "rmse")$mean[1], digits = 3)` (compared to the resampling estimate of `r format(best_pls$mean[best_pls$Pre == "(1, 2, 15)"], digits = 3)`). The corresponding test set $R^2$ was `r format(show_best(final_fit, metric = "rsq")$mean[1] * 100, digits = 3)`%. 
+
+
+```{r}
+#| label: fig-test
+#| echo: false
+#| warning: false
+#| fig-height: 4
+#| fig-width: 4
+#| out-width: "50%"
+#| fig-cap: "Observed and predicted values for the test set. "
+
+final_fit %>% 
+  collect_predictions() %>% 
+  ggplot(aes(concentration, .pred)) + 
+  geom_abline(col = "green") +
+  geom_point(cex = 2, alpha = 1 / 2) +
+  labs(x = "Observed DP Concentration", y = "Predicted DP Concentration") +
+  coord_obs_pred()
+```
 
 # Post-Modeling Activities
+
+Assuming our final model will be used on additional unknown samples in the future, there are a few more tasks. First is documentation. This should involve descriptions of the training and test sets, their provenance, the process of optimizing and choosing the final model, and a description of its use case. 
+
+The amount of documentation and what should be included really depends on how the predictions will be used and by whom. Speaking from experience regarding models for absorption, distribution, metabolism, excretion, and toxicology (ADMET) endpoints, the consumers of the model predictions were very focused on results for yet-to-be-synthesized molecules. Inconsistencies in predictions (real or perceived) could lead to intense interest in the model's particulars. Good documentation about what the model was good for (and not suitable for) was critical. _Model Cards_ [@mitchell2019model] offer a good template for getting started. 
+
+::: {.callout-important}
+## **WTF**
+The model's intended use, called its applicability, is important to define and document. If a wide variety of people can access the model, it is hard to control who will use it and for what purpose. Setting intentional limits of relevance is a good idea.  
+:::
+
+In some cases, it may be necessary to explain, to some extent, how the model works and why it made specific predictions. Unfortunately, these questions may be asked if a prediction does not meet preconceived expectations. Simpler models, such as PLS, are easier to explain. Regardless of model complexity, there is a rich field of research on model explainers. See, for example, @molnar2020interpretable and @biecek2021explanatory for tools to help users understand the model and its results. 
+Finally, if a model is put into production, we need to make sure that it is still meeting its stated goals (i.e., applicability).  If more labeled samples are being accrued, a protocol for monitoring performance over time is critical in case the performance statistics begin to drift away from their original resampling/test set estimates. 
 
 ::: {.callout-important}
 ## **WTF**
 
-_Models_ do not drift; data can change over time, as can the population being predicted. Tools called applicability domain methods help measure how far (if at all) a new sample is from the original training set (i.e., extrapolation). These values can accompany a new sample prediction to help gauge how dodgy a new sample may be. 
+_Models_ do not drift; data can change over time, as can the population being predicted. Tools called applicability domain methods [@netzeva2005current;@gadaleta2016applicability] help measure how far (if at all) a new sample is from the original training set (i.e., extrapolation). These values can accompany a new sample prediction to help gauge how dodgy a new sample may be. 
 :::
 
+The nature of drug discovery causes the type, structure, and characteristics of molecules to change over time; medicinal chemists are designing therapies that are entirely different from those created in decades past. Physiochemical properties fluctuate over time; knowing how the model handles these changes is vital. 
+
+There is also the idea of _concept drift_: the purpose of a model can also change. For example, suppose that we develop an ADMET ML model for predicting blood-brain barrier permeation based on existing therapeutic areas. Suppose that the company purchases other discovery groups with a strong neuroscience group (where there was none previously). The original model was intended to tell when a molecule unintentionally crossed the barrier. Now, there is increased interest in molecules that should cross the barrier. At this point, an assessment should be made as to whether a separate model is required for each use case. 
 
 # Conclusions
 
