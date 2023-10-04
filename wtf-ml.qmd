@@ -522,6 +522,15 @@ svm_rmse <-
   ) %>% 
   slice_min(RMSE, by = c(Pre, num_iter))
 
+worst_resid_ids <- 
+  all_pred %>% 
+  mutate(abs_resid = abs(.pred - concentration)) %>% 
+  slice_max(abs_resid, n = 5) %>% 
+  count(sample_id) %>% 
+  arrange(desc(n)) %>% 
+  pluck("sample_id") %>% 
+  knitr::combine_words()
+
 ```
 
 First, let's examine the PLS and RF model results. Each optimized a single model parameter. @fig-pls-rf-tune-profiles (left) illustrates the tuning parameter profiles across the number of components evaluated for the original spectra and the different Savitzky-Golay pre-processed spectra.  RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed.  The model with the lowest RMSE uses the SG filter with parameterization of first-order differentiation, second-order polynomial, and a small window size (1, 2, 15), and `r best_pls$num_comp[best_pls$Pre == "(1, 2, 15)"]` components.
@@ -615,6 +624,8 @@ The next step in the process is to select which predictor set, model, and tuning
 
 
 @fig-all-optimal-models displays the cross-validated RMSE values corresponding to each model's optimal tuning parameter settings.  There are several important findings that this figure reveals.  First, the SVM and RF models have improved predictive performance when the SG pre-processing is applied.  On the other hand, the PLS and Cubist models are not substantially improved with this pre-processing.  In fact, the performance can be made worse if second-order differentiation is applied.
+
+The samples with the largest residuals were `r worst_resid_ids`
 
 ```{r}
 #| label: fig-all-optimal-models

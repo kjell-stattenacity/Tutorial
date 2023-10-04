@@ -96,8 +96,8 @@ all_pred <-
     all_svm_preds %>% select(all_of(keep_cols))
   ) %>% 
   inner_join(
-    all_best %>% select(-RMSE, -n, -std_err), 
-    by = join_by(Model, Pre, .config, differentiation_order, polynomial_order, window_size)
+    all_best %>% select(Model, Pre, .config), 
+    by = join_by(Model, Pre, .config)
   ) %>% 
   mutate(
     Model = factor(Model, levels = models),
