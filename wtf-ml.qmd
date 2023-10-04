@@ -51,7 +51,7 @@ load("RData/final_fit.RData")
 
 # Introduction
 
-It feels like machine learning is everywhere. Within data analysis circles, almost every discussion involves how artificial intelligence and machine learning can change our lives. ChatGPT ([`https://chat.openai.com`](https://chat.openai.com/)) and similar applications have turned up the noise in the conversation, and many people believe it should be applied. TODO more here
+It feels like machine learning (ML) is everywhere. Within data analysis circles, almost every discussion involves how artificial intelligence and machine learning can change our lives. ChatGPT ([`https://chat.openai.com`](https://chat.openai.com/)) and similar applications have turned up the noise in the conversation, and many people believe it should be applied. TODO more here
 
 This tutorial assumes that the reader has had some exposure to machine learning (a.k.a. predictive modeling or statistical learning) and related techniques such as resampling. If not, we suggest @HastieEtAl2017 for technical information and @kuhn2013applied for practical descriptions focused on applying these methods. For deep learning methods, @goodfellow2016deep and @charu2018neural are good introductions.
 
@@ -62,7 +62,7 @@ For example, it might make sense to discuss what the term "machine learning" mea
 ::: {.callout-important}
 ## **WTF**
 
-The idea of a "machine learning model" is more defined by the project's goal than the type of model. 
+The idea of a "machine learning model" is more defined by the project's goal than the type of model.  TODO reword a bit. 
 :::
 
 It is difficult to argue that ML models focus on making the most accurate prediction of a new sample based on historical data. From that point of view, any sufficiently complex model that performs sufficiently well. For example, a linear regression could fit this definition by including appropriate interactions or nonlinear terms, such as spline basis expansions. The models most representative of the current zeitgeist are sophisticated and impenetrable methods such as neural networks and boosted trees. However...
@@ -75,23 +75,25 @@ You probably don't need a complex black-box machine learning model.
 
 Why not? First, not all problems are purely prediction problems. Most black-box models used for ML, such as neural networks or tree ensembles, are excellent at prediction but poor at almost anything else. We have seen applications where simple two-factor experimental data were analyzed using the random forest ensemble method instead of a simple ANOVA model. When it comes to judging what predictors are important to one another, many machine learning models are not very applicable. 
 
-Another reason is the potential limitations of experimental data. Sometimes, there is not enough data to support fitting such a model. For example, if an unreplicated response surface design were available, training a model and characterizing its efficacy with so few data points would be difficult. Data size is a limitation, but there are other challenging data characteristics: irrelevant predictors, measurement system noise, censored values, multicollinearity, and others. 
+Another reason is the potential limitations of experimental data. Sometimes, there is not enough data to support fitting such a model. For example, if an unreplicated response surface design were available, training a model and characterizing its efficacy with so few data points would be difficult. Data size is a limitation, but there are other challenging data characteristics: irrelevant predictors, measurement system noise, censored values, multicollinearity, and others. TODO a but redundant with later paragraph
 
-For some, there is a significant urge to fit complex ML models since they often are the best choice in completely different domains. These domains often have access to excessive amounts of non-tabular data. These are data structures that do not naturally fit into the traditional rectangular data format (e.g., spreadsheets or database tables). The most common examples are images, video, and text. Given a large amount of data and complex enough models, we have tools that recognize cats a picture or can ingest a prompt and appear to complete a task correctly, such as answering a question or writing code. These models are often complex deep-learning neural networks.
+For some, there is a significant urge to fit complex ML models since they often are the best choice in completely different domains. These domains often have access to excessive amounts of non-tabular data. These are data structures that do not naturally fit into the traditional rectangular data format (e.g., spreadsheets or database tables). The most common examples are images, video, and text. Given a large amount of data and complex enough models, we have tools that recognize cats a picture or can ingest a prompt and appear to complete a task correctly, such as answering a question or writing code. TODO reword These models are often complex deep-learning neural networks.
 
 A disconnect occurs because most experimental data used in CMC applications are tabular (or can be made to be tabular). 
 
 ::: {.callout-important}
 ## **WTF**
 
-Unless you are analyzing images, it is exceedingly unlikely that a deep-learning model is your best option. 
+Unless you are analyzing a large number of images, it is exceedingly unlikely that a deep-learning model is your best option. 
 :::
 
 There is considerable anecdotal evidence that highly complex neural networks may not perform well for reasonably sized tabular data sets. This is currently being examined more formally in the literature [@kadra2021regularization;@gorishniy2021revisiting;@Borisov2022;@SHWARTZZIV202284]. Experimental data in preclinical applications can often exhibit multicollinearity between predictors and data measured with error. For novel data sets, we often do not know which predictors have a relationship with the outcome, increasing the possibility that some irrelevant predictors will be used to fit the model. In general, neural networks do not thrive in these environments [@kuhn2013applied]. 
 
 Simply put, deep learning models can be effective in specific scenarios but are inappropriate in many other situations. 
 
-In this tutorial, we will discuss the process of constructing ML models for a specific data set. This process starts with understanding the available data's predictors and responses. After this initial understanding, we must then determine how to spend the data for the model-building process. Specifically, some data will need to be used to learn the generalizable characteristics that relate the predictors with the response (i.e., the training set). And other data will need to be used to assess how well the model predicts new data (i.e., the test set). After splitting the data, the predictors and/or the response may need to be preprocessed prior to modeling to enable better models to extract the predictive signal. After preprocessing, we can determine which types of predictive models to build. Each model has one or more parameters that determine how predictors are related to the response. In general, we do not know a priori which values of the tuning parameters are best. Therefore, we search a range of values to identify an optimal value. After identifying an optimal model, this model is then evaluated on the test data to determine if the model can be trusted to predict new yet-to-be-seen samples reliably.
+TODO preprocessing or pre-processing? same with overfitting
+
+In this tutorial, we will discuss the process of constructing ML models for a specific tabular data set. This process starts with understanding the available data's predictors and responses. After this initial understanding, we must then determine how to spend the data for the model-building process. Specifically, some data will need to be used to learn the generalizable characteristics that relate the predictors with the response (i.e., the training set). And other data will need to be used to assess how well the model predicts new data (i.e., the test set). After splitting the data, the predictors and/or the response may need to be preprocessed prior to modeling to enable better models to extract the predictive signal. After preprocessing, we can determine which types of predictive models to build. Each model has one or more parameters that determine how predictors are related to the response. In general, we do not know a priori which values of the tuning parameters are best. Therefore, we search a range of values to identify an optimal value. After identifying an optimal model, this model is then evaluated on the test data to determine if the model can be trusted to predict new yet-to-be-seen samples reliably.
 
 Let's look at a specific CMC application to facilitate the discussion further.  
 
@@ -128,7 +130,7 @@ ggplot(data_long, aes(x = wave_number, y = intensity, group = sample_id)) +
   labs(x = bquote('Wavenumber (' * cm ^ -1 * ')'), y = "Intensity")
 ```
 
-To illustrate this more clearly, let's examine the relationship among wavenumber measurements for the first sample.  For the first sample, the first 3000 lags are created.  To create a lag, the data is shifted by a specified number of rows to create a new variable.  For example, to create the first lag, the wavenumber measurements are shifted over by one wavenumber.  To create the second lag, the measurements are shifted by two wavenumberes, and so on.  @fig-lagged-spectra illustrates the correlation between each subsequent lag for the first 1000 lags.  Clearly, close wavenumbers have a high correlation, whereas far wavenumbers have a low correlation.  As we will see, understanding this characteristic will be very important when deciding how to pre-process the data prior to modeling and which models to train. 
+To illustrate this more clearly, let's examine the relationship among wavenumber measurements for the first sample.  For the first sample, the first 3000 lags are created. TODO why 3000?  To create a lag, the data is shifted by a specified number of rows to create a new variable.  For example, to create the first lag, the wavenumber measurements are shifted over by one wavenumber.  To create the second lag, the measurements are shifted by two wavenumberes, and so on.  @fig-lagged-spectra illustrates the correlation between each subsequent lag for the first 1000 lags.  Clearly, close wavenumbers have a high correlation, whereas far wavenumbers have a low correlation.  As we will see, understanding this characteristic will be very important when deciding how to pre-process the data prior to modeling and which models to train. 
 
 ```{r}
 #| label: fig-lagged-spectra
@@ -160,7 +162,7 @@ ggplot(for_cor_fig, aes(x = Lag, y = cor)) +
 
 With such a large dimensional data set, it is difficult to investigate specific predictors visually. Additionally, the high degree of between-predictor correlations further increases the ability to investigate the data. In @sec-pre-processing, we'll look at specific data points using dimension reduction tools under different types of signal processing regimes. 
 
-In addition to understanding the predictors, we should also understand the characteristics of the response.  Examining the response distribution can help determine if a transformation may be necessary or if there are samples that are unusual with respect to the majority of the data.  @fig-concentration presents the histogram of drug product concentration across the samples.  For this data, the distribution is approximately symmetric and has a range of `r min(data_wide$concentration)` to `r max(data_wide$concentration)`.  Based on this figure, a transformation does not appear necessary, and there are no unusual samples.
+In addition to understanding the predictors, we should also understand the characteristics of the response.  Examining the response distribution can help determine if a transformation may be necessary or if there are samples that are unusual with respect to the majority of the data. TODO reword to be about the outcome @fig-concentration presents the histogram of drug product concentration across the samples.  For this data, the distribution is approximately symmetric and has a range of `r min(data_wide$concentration)` to `r max(data_wide$concentration)`.  Based on this figure, a transformation does not appear necessary, and there are no unusual samples.
 
 ```{r}
 #| label: fig-concentration
@@ -192,7 +194,7 @@ Always have an independent data set that can contradict what you think you may k
 
 However, most predictive models must be constructed using a variety of tuning parameter values.  The test set would then need to be evaluated multiple times to assess predictive performance.  When the test set is evaluated multiple times, we are essentially finding a model that fits the test set.  This process leads to overfitting, and the model performance cannot be trusted to evaluate the predictive performance on new samples accurately.  Therefore, a single training/test split will not be adequate for building predictive models.  Moreover, it is important to understand that the test set should only be used once to evaluate the final selected models.
 
-Instead of a single training/test split, we need a process that can be used to evaluate many tuning parameter values for each of many different models. @fig-resampling illustrates a two-layered process that incorporates the use of resampling.  The first layer splits the entire data set into a training and test set.  In general, anywhere between 50% to 80% of the data is randomly selected for the training data, while the remaining data is placed in the test set.  A random split may be adequate.  However, we may desire that the training set and testing split data have similar characteristics.  For example, it may be advantageous for the training and test sets to have a similar distribution of the response.  If the response distribution is skewed, then it would be important that the training and test sets reflect the entirety of the distribution.  Likewise, if there are characteristics or covariates in the data that should be proportionally represented, then the data should be split into the training and testing set using a stratified random approach. 
+Instead of a single training/test split, we need a process that can be used to evaluate many tuning parameter values for each of many different models. @fig-resampling illustrates a two-layered process that incorporates the use of resampling.  The first layer splits the entire data set into a training and test set.  In general, anywhere between 50% to 80% of the data is randomly selected for the training data, while the remaining data is placed in the test set.  A random split may be adequate.  However, we may desire that the training set and testing split data have similar characteristics.  For example, it may be advantageous for the training and test sets to have a similar distribution of the response.  If the response distribution is skewed, then it would be important that the training and test sets reflect the entirety of the distribution.  Likewise, if there are characteristics or covariates in the data that should be proportionally represented, then the data should be split into the training and testing set using a stratified random approach. TODO discuss stratification here? 
 
 ```{r}
 #| label: fig-resampling
@@ -231,7 +233,7 @@ For the example presented here, a stratified random approach will be used to spl
 
 # Pre-processing {#sec-pre-processing}
 
-The predictors and responses, in their original form, are usually not in the best form for enabling models to find an optimal predictive relationship.  The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors.  Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics.  However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present.  As a simple example, consider a predictor with three categories: low, medium, and high.  The information, in this form, cannot be ingested by most models.  Instead, the information must be converted into either an ordinal-scaled predictor or two binary variables.  Missing data also wreaks havoc on predictive models because the models require non-missing information.  Therefore, appropriate pre-processing steps must be taken before model training.
+The predictors and responses, in their original form, are usually not in the best form for (TODO reword) enabling models to find an optimal predictive relationship.  The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors.  Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics.  However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present.  As a simple example, consider a predictor with three categories: low, medium, and high.  The information, in this form, cannot be ingested by most models.  Instead, the information must be converted into either an ordinal-scaled predictor or two binary variables.  Missing data also wreaks havoc on predictive models because the models require non-missing information.  Therefore, appropriate pre-processing steps must be taken before model training.
 
 ::: {.callout-important}
 ## **WTF**
@@ -246,6 +248,8 @@ It is very important to consider each of these estimation procedures as part of 
 
 As we will see, some characteristics in our CMC data set can be problematic for some models. A number of pre-processing operations will be evaluated and optimized to counter these data characteristics. 
 
+TODO reword or combine next two paramgrahs
+
 For example, as shown previously, there is a high degree of correlation between our predictor values. The high degree of multicollinearity frequently occurs with spectral data but is not limited to them. Some models, such as partial least squares (PLS), are unaffected by this situation and can exploit these correlations to produce a successful model. The downside to PLS is that its linear nature has the potential to limit the range of patterns that it can emulate, leading to models that underfit. Other models have more potential to predict accurately but can be severely handicapped by the correlation structure of the predictors. 
 
 There are a variety of tools to compensate for this issue: 
@@ -254,7 +258,7 @@ There are a variety of tools to compensate for this issue:
 * Focus on models that utilize regularization to reduce the effect of the correlations, such as ridge regression [@hoerl1970ridge]. 
 * Exploit the autoregressive nature of the spectra by providing the model with the differences between consecutive predictors (i.e., first- or second-derivatives).
 
-In practice, different models have affinities for different types of predictor sets. We often have to couple different predictor sets to different models and discover which strategy works and which does not. 
+In practice, different models have affinities for different types of predictor sets. We often have to pair different predictor sets to different models and discover which strategy works and which does not. 
 
 ::: {.callout-important}
 ## **WTF**
@@ -379,6 +383,8 @@ pca_cap <-
 
 For these data, principal component analysis can be conducted on the training set predictors (after centering and scaling the predictors). This can help us understand if there are any unwanted systematic effects in the data (such as differences in reagents, instruments, etc.). @fig-pca-plot shows the results using two components. These components accounted for between 65%-95% of the predictor information, with the exception of the (2, 2, 15) set, which only captured about 45%. With the exception of a single sample, there are no obvious patterns in the results to give us pause (such as clustering). That odd sample, number `r pca_sample`, is the same data point in @fig-raman-spectra with relatively low intensity compared to the other spectra. It is unclear how this would affect the results (if at all), so it was retained in the data set. Later analyses will examine whether this sample is associated with larger residuals. 
 
+TODO where to we introduce the (x, x, x) notation? 
+
 
 
 ```{r}
@@ -427,7 +433,7 @@ The performance metric that you choose is important; poor choices can guide you 
 For example, $R^2$ is a measure of correlation but not accuracy. Optimizing it can yield models that are inaccurate at the high and low regions of the outcome distribution. 
 :::
 
-While there are many models to choose from, we will compare four modeling techniques for this data:  partial least squares (PLS), random forest (RF), Cubist, and support vector machines (SVM).  These models were selected to illustrate a range of types of models.  We will now provide a high-level explanation of each of these models.  Please see the references to learn more.
+While there are many models to choose from, we will compare four modeling techniques for this data:  partial least squares (PLS), random forest (RF), Cubist, and support vector machines (SVM).  These models were selected to illustrate a range of types of models.  We will now provide a high-level explanation of each of these models along with additional references.
 
 ### Partial Least Squares
 
@@ -535,7 +541,7 @@ all_pred <-
   mutate(
     sample_note = "everything",
     sample_note = ifelse(sample_id == worst_resid_ids[1], paste(worst_resid_ids[1]), sample_note),
-    sample_note = ifelse(sample_id == worst_resid_ids[2], paste(worst_resid_ids[2]), sample_note),
+    sample_note = ifelse(sample_id == worst_resid_ids[2], paste(worst_resid_ids[2]), sample_note)
   )
 all_pred_most <- filter(all_pred, sample_note == "everything")
 all_pred_34 <- filter(all_pred, sample_note == "34")
@@ -634,7 +640,7 @@ The next step in the process is to select which predictor set, model, and tuning
 
 @fig-all-optimal-models displays the cross-validated RMSE values corresponding to each model's optimal tuning parameter settings.  There are several important findings that this figure reveals.  First, the SVM and RF models have improved predictive performance when the SG pre-processing is applied.  On the other hand, the PLS and Cubist models are not substantially improved with this pre-processing.  In fact, the performance can be made worse if second-order differentiation is applied.
 
-The samples with the largest residuals were `r knitr::combine_words(worst_resid_ids)`.
+The samples with the largest residuals were `r knitr::combine_words(worst_resid_ids)`. These are shown in @fig-obs-pred-cv-comparison with red triangles and blue squares, respectively. 
 
 ```{r}
 #| label: fig-all-optimal-models
@@ -674,8 +680,8 @@ all_pred_most %>%
   ggplot(aes(concentration, .pred)) + 
   geom_abline(col = "green") +
   geom_point(alpha = 1 / 2) + 
-  geom_point(data = all_pred_34, col = "red", pch = 17, cex = 4, alpha = 1 / 2) + 
-  geom_point(data = all_pred_7, col = "blue", pch = 15, cex = 4, alpha = 1 / 2) + 
+  geom_point(data = all_pred_34, col = "red", pch = 17, cex = 2) + 
+  geom_point(data = all_pred_7, col = "blue", pch = 15, cex = 2) + 
   facet_grid(Model ~ Pre) +
   labs(x = "Observed DP Concentration", y = "Predicted DP Concentration")
 ```
@@ -748,7 +754,7 @@ There is also the idea of _concept drift_: the purpose of a model can also chang
 
 # Conclusions
 
-
+This tutorial was intended to provide readers with a realistic worked example of machine learning with a CMC application and also to demonstrate that there is still a fair amount of art in this particular area of science. The content in most of our WTF items is borne out of experience. Our advice for practitioners just starting out is to read as much literature as possible, try many different approaches, and be very dogmatic about thoroughly validating your results.
 
 # Software and Data
 
