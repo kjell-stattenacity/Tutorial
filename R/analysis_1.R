@@ -245,7 +245,7 @@ pca_var_1 <-
   rec_pca_1 %>% 
   tidy(id = "pca", type = "variance") %>% 
   filter(terms == "cumulative percent variance") %>% 
-  dplyr::dplyr::select(value, component) %>% 
+  dplyr::select(value, component) %>% 
   cbind(preproc_1) %>% 
   as_tibble() 
 

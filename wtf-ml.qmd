@@ -17,7 +17,9 @@ format:
     pdf-engine: pdflatex
 knitr:
   opts_chunk:
-    cache.path: "_cache/"    
+    cache.path: "_cache/"  
+    fig.path: "figures/"
+    fig.pos: "t!"  
 ---
 
 ```{r}
@@ -35,11 +37,6 @@ library(rules)
 tidymodels_prefer()
 theme_set(theme_bw())
 options(pillar.advice = FALSE, pillar.min_title_chars = Inf)
-
-# ------------------------------------------------------------------------------
-
-knitr::opts_chunk$set(fig.path = "figures/", fig.pos = "t!")
-
 
 # ------------------------------------------------------------------------------
 
