@@ -528,9 +528,18 @@ worst_resid_ids <-
   slice_max(abs_resid, n = 5) %>% 
   count(sample_id) %>% 
   arrange(desc(n)) %>% 
-  pluck("sample_id") %>% 
-  knitr::combine_words()
+  pluck("sample_id")
 
+all_pred <- 
+  all_pred %>% 
+  mutate(
+    sample_note = "everything",
+    sample_note = ifelse(sample_id == worst_resid_ids[1], paste(worst_resid_ids[1]), sample_note),
+    sample_note = ifelse(sample_id == worst_resid_ids[2], paste(worst_resid_ids[2]), sample_note),
+  )
+all_pred_most <- filter(all_pred, sample_note == "everything")
+all_pred_34 <- filter(all_pred, sample_note == "34")
+all_pred_7 <- filter(all_pred, sample_note == "7")
 ```
 
 First, let's examine the PLS and RF model results. Each optimized a single model parameter. @fig-pls-rf-tune-profiles (left) illustrates the tuning parameter profiles across the number of components evaluated for the original spectra and the different Savitzky-Golay pre-processed spectra.  RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed.  The model with the lowest RMSE uses the SG filter with parameterization of first-order differentiation, second-order polynomial, and a small window size (1, 2, 15), and `r best_pls$num_comp[best_pls$Pre == "(1, 2, 15)"]` components.
@@ -625,7 +634,7 @@ The next step in the process is to select which predictor set, model, and tuning
 
 @fig-all-optimal-models displays the cross-validated RMSE values corresponding to each model's optimal tuning parameter settings.  There are several important findings that this figure reveals.  First, the SVM and RF models have improved predictive performance when the SG pre-processing is applied.  On the other hand, the PLS and Cubist models are not substantially improved with this pre-processing.  In fact, the performance can be made worse if second-order differentiation is applied.
 
-The samples with the largest residuals were `r worst_resid_ids`
+The samples with the largest residuals were `r knitr::combine_words(worst_resid_ids)`.
 
 ```{r}
 #| label: fig-all-optimal-models
@@ -661,12 +670,14 @@ Across the five pre-processing sets and four models, let's compare the observed 
 #| fig-width: 7.5
 #| fig-cap: "Comparison of observed versus hold-out predicted values from cross-validation for the optimal tuning parameter settings for three models and three pre-processing combinations.  One challenging sample to predict is highlighted in red."
 
-all_pred %>% 
+all_pred_most %>% 
   ggplot(aes(concentration, .pred)) + 
   geom_abline(col = "green") +
   geom_point(alpha = 1 / 2) + 
+  geom_point(data = all_pred_34, col = "red", pch = 17, cex = 4, alpha = 1 / 2) + 
+  geom_point(data = all_pred_7, col = "blue", pch = 15, cex = 4, alpha = 1 / 2) + 
   facet_grid(Model ~ Pre) +
-  labs(x = "Observed DP Concentration", y = "Predicted DP Concentration") 
+  labs(x = "Observed DP Concentration", y = "Predicted DP Concentration")
 ```
 
 ::: {.callout-important}
