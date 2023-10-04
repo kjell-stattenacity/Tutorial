@@ -85,8 +85,9 @@ all_best <-
   )
 
 
-keep_cols <- c("Model", "Pre", ".row", "concentration", ".pred", ".config", 
-               "differentiation_order", "polynomial_order", "window_size")
+keep_cols <- c("Model", "Pre", "concentration", ".pred", ".config", 
+               "differentiation_order", "polynomial_order", "window_size", 
+               "sample_id")
 all_pred <- 
   bind_rows(
     all_pls_preds %>% select(all_of(keep_cols)), 
