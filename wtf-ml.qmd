@@ -1,6 +1,18 @@
 ---
 title: "What They forgot to Tell You about Machine Learning with an Application to Pharmaceutical Manufacturing"
-author: "Kjell Johnson & Max Kuhn"
+author: 
+  - name: Kjell Johnson
+    orchid: 0000-0003-4260-9634
+    email: kjell@stattenacity.com
+    affiliation: 
+      - name: Stattenacity 
+        url: www.stattenacity.com
+  - name: Max Kuhn
+    orcid: 0000-0003-2402-136X
+    email: mxkuhn@gmail.com
+    affiliation: 
+      - name: Posit PBC
+        url: posit.co   
 bibliography: references.bib
 type: manuscript
 format:
