@@ -400,7 +400,7 @@ Figure&nbsp;9: An example of a space-filling design for two tuning parameters in
 <p>First, let’s examine the PLS and RF model results, each of which optimized a single tuning parameter. <a href="#fig-pls-rf-tune-profiles" class="quarto-xref">Figure&nbsp;10</a> (left) illustrates the relationship between the number of PLS components and the RMSE. There are seperate profiles for the different Savitzky-Golay configurations. RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed. Oddly, the (1, 2, 49) configuration showed degradation in performance after 8 components. The model with the lowest RMSE uses the (1, 2, 15) pre-processor and 12 components. There was a plateu of RMSE after 12 components but choosing fewer components is better than adding unnecessary complexity.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-pls-rf-tune-profiles" class="quarto-figure quarto-figure-center anchored" width="90%" data-fig-pos="t!">
+<div id="fig-pls-rf-tune-profiles" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="90%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pls-rf-tune-profiles-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-pls-rf-tune-profiles-1.svg" class="img-fluid figure-img" style="width:90.0%" data-fig-pos="t!">
 </div>
@@ -414,7 +414,7 @@ Figure&nbsp;10: The tuning parameter profiles for partial least squares and rand
 <p>The Cubist performance profiles are shown in <a href="#fig-cb-profiles" class="quarto-xref">Figure&nbsp;11</a>. The left panel shows that, after a few initial iterations, choice of the ensemble size is not crucial On the right, the main trend in the number of nearest neighbors is that 1-2 neighbors is a poor choice; otherwise there is very little difference in the RMSE profiles. Across pre-processing configurations, the (2, 2, 49) appears to work best with this model with an estimated RMSE of 1.79. Like the random forest results, pre-processing has a larger impact than the model’s tuning parameter(s). TODO list best parameter values</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-cb-profiles" class="quarto-figure quarto-figure-center anchored" width="90%" data-fig-pos="t!">
+<div id="fig-cb-profiles" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="90%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-cb-profiles-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-cb-profiles-1.svg" class="img-fluid figure-img" style="width:90.0%" data-fig-pos="t!">
 </div>
@@ -429,7 +429,7 @@ Figure&nbsp;11: The tuning parameter profiles for the Cubist model.
 <p><a href="#fig-svm-search" class="quarto-xref">Figure&nbsp;12</a> illustrates the process of the iterative Bayesian search. A few of the profiles show a progressive reduction in the RMSE as the algorithm moves through the parameter space defined by the SVM cost and RBF dispersion parmaeters. Other profiles show some sporadic increases/jumps in RMSE. Bayesian optimization is a global, derivative free technique and may make discordant jumps as it explores the parameter space. In the end, the average reduction in RMSE across the pre-processing settings was 3.1-fold, indicating that the optimization was effective. There are a few pre-processing methods with effectively equal results. The numerically best corresponding to SG settings of (2, 2, 49), a cost value of TODO, and a radial basis function dispersion parameter of TODO. The corresponding RMSE was estimated to be 1.8.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-svm-search" class="quarto-figure quarto-figure-center anchored" width="90%" data-fig-pos="t!">
+<div id="fig-svm-search" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="90%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-svm-search-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-svm-search-1.svg" class="img-fluid figure-img" style="width:90.0%" data-fig-pos="t!">
 </div>
@@ -448,7 +448,7 @@ Figure&nbsp;12: Progress of Bayesian optimization for the SVM parameters. Iterat
 <p>Given the confidence intervals on the best RMSE, multiple pre-processing choices have equal performance.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-all-optimal-models" class="quarto-figure quarto-figure-center anchored" width="75%" data-fig-pos="t!">
+<div id="fig-all-optimal-models" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="75%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-all-optimal-models-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-all-optimal-models-1.svg" class="img-fluid figure-img" style="width:75.0%" data-fig-pos="t!">
 </div>
@@ -471,12 +471,11 @@ Figure&nbsp;13: Cross-validation predictive performance using the optimal tuning
 <p>It is a common situation when multiple tuning parameter combinations have approximately the same level of performance. Likewise, it is rare that a single type of model completely outclasses the others.</p>
 </div>
 </div>
-<p>Let’s compare the observed versus predicted values across the five pre-processing sets and three models. <a href="#fig-obs-pred-cv-comparison" class="quarto-xref">Figure&nbsp;14</a> highlights some interesting characteristics. First, there is one sample that tends to have very large residuals. This is our old friend sample 34, last seen in <a href="#fig-pca-plot" class="quarto-xref">Figure&nbsp;8</a>. Interestingly, some models are more sensitive to this sample than others.</p>
-<p>Interestingly, some models are more sensitive to this sample than others. The SVM model is remarkably robust to the sample. It may be because of the nature of support vector machines: they do not use all of the training set data to define the prediction equation. It is possible that sample 34 is not one of the <em>support vectors</em> for this model.</p>
-<p>At this point, the sample is very interesting, and we would consult with the spectroscopist to determine if this sample is valid. That could be an issue with reagents or instrumentation. For our analysis here, we’ll leave it alone and pick a model/pre-processing combination that appears unaffected.</p>
+<p>Let’s compare the observed versus predicted values across the five pre-processing sets and three models. <a href="#fig-obs-pred-cv-comparison" class="quarto-xref">Figure&nbsp;14</a> highlights some interesting characteristics. First, there is one sample that tends to have very large residuals. This is our old friend sample 34, last seen in <a href="#fig-pca-plot" class="quarto-xref">Figure&nbsp;8</a>. Interestingly, some models are more sensitive to this sample than others. The SVM model is remarkably robust to the sample. It may be because of the nature of support vector machines: they do not use all of the training set data to define the prediction equation. It is possible that sample 34 is not one of the <em>support vectors</em> for this model.</p>
+<p>At this point, the sample is very interesting, and we would consult with the spectroscopist to determine if it is valid. That could be an issue with reagents or instrumentation. For our analysis here, we’ll leave it alone and pick a model/pre-processing combination that appears unaffected.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-obs-pred-cv-comparison" class="quarto-figure quarto-figure-center anchored" width="90%" data-fig-pos="t!">
+<div id="fig-obs-pred-cv-comparison" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="90%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-obs-pred-cv-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-obs-pred-cv-comparison-1.svg" class="img-fluid figure-img" style="width:90.0%" data-fig-pos="t!">
 </div>
@@ -487,7 +486,8 @@ Figure&nbsp;14: Comparison of observed versus hold-out predicted values from cro
 </div>
 </div>
 <p>We must pick a pre-processing scheme and model type to define the official model. We’ll choose the PLS model with 12 components and the (1, 2, 15) pre-processing settings. The performance of this model is exceptional, especially given that a linear model has limited complexity (generally, simpler is better). The final model fit uses the optimized tuning parameters in conjunction with the entire training set of 45 samples.</p>
-<p>As an alternative to choosing a single, final model, a <em>stacking ensemble</em> could selectively blend all of our existing models (and pre-processing methods) into a single model fit. These models can dynamically choose which methods to include or exclude to maximize performance <span class="citation" data-cites="breiman1996stacked smyth1999linearly">(<a href="#ref-breiman1996stacked" role="doc-biblioref">Breiman 1996</a>; <a href="#ref-smyth1999linearly" role="doc-biblioref">Smyth and Wolpert 1999</a>)</span>.</p>
+<p>Now that we have the official model fit, our next step is to verify the results using the test set.</p>
+<p>As an alternative to choosing between models, a <em>stacking ensemble</em> could selectively blend all of our existing models (and pre-processing methods) into a single model fit. These models can dynamically choose which methods to include or exclude to maximize performance <span class="citation" data-cites="breiman1996stacked smyth1999linearly">(<a href="#ref-breiman1996stacked" role="doc-biblioref">Breiman 1996</a>; <a href="#ref-smyth1999linearly" role="doc-biblioref">Smyth and Wolpert 1999</a>)</span>.</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -501,13 +501,12 @@ Figure&nbsp;14: Comparison of observed versus hold-out predicted values from cro
 <p>Stacking is worth trying if the training set is large. In these situations, it typically yields ensembles with slightly better results. Its importance has been inflated due to success in machine learning competitions.</p>
 </div>
 </div>
-<p>Now that we have the official model fit, we verify the results using the test set.</p>
 </section><section id="test-set-results" class="level1"><h1>Test Set Results</h1>
 <p><a href="#fig-test" class="quarto-xref">Figure&nbsp;15</a> shows the observed and predicted drug product concentrations for the 15 samples in the test set. The sample size is small, but there does appear to be some excess variation in the predictors for smaller values. Despite this, the results seem reasonably good.</p>
 <p>The resulting test set RMSE was 1.93 (compared to the resampling estimate of 1.77). The corresponding test set <span class="math inline">\(R^2\)</span> was 95.8%.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-test" class="quarto-figure quarto-figure-center anchored" width="50%" data-fig-pos="t!">
+<div id="fig-test" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="50%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-test-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-test-1.svg" class="img-fluid figure-img" style="width:50.0%" data-fig-pos="t!">
 </div>

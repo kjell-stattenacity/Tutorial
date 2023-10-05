@@ -2,6 +2,7 @@
 title: "What They forgot to Tell You about Machine Learning with an Application to Pharmaceutical Manufacturing"
 author: "Kjell Johnson & Max Kuhn"
 bibliography: references.bib
+type: manuscript
 format:
   html:
     theme: 
@@ -712,11 +713,9 @@ all_best %>%
 It is a common situation when multiple tuning parameter combinations have approximately the same level of performance. Likewise, it is rare that a single type of model completely outclasses the others. 
 :::
 
-Let's compare the observed versus predicted values across the five pre-processing sets and three models.  @fig-obs-pred-cv-comparison highlights some interesting characteristics. First, there is one sample that tends to have very large residuals. This is our old friend sample 34, last seen in @fig-pca-plot. Interestingly, some models are more sensitive to this sample than others. 
+Let's compare the observed versus predicted values across the five pre-processing sets and three models.  @fig-obs-pred-cv-comparison highlights some interesting characteristics. First, there is one sample that tends to have very large residuals. This is our old friend sample 34, last seen in @fig-pca-plot. Interestingly, some models are more sensitive to this sample than others. The SVM model is remarkably robust to the sample. It may be because of the nature of support vector machines: they do not use all of the training set data to define the prediction equation. It is possible that sample 34 is not one of the _support vectors_ for this model. 
 
-Interestingly, some models are more sensitive to this sample than others. The SVM model is remarkably robust to the sample. It may be because of the nature of support vector machines: they do not use all of the training set data to define the prediction equation. It is possible that sample 34 is not one of the _support vectors_ for this model. 
-
-At this point, the sample is very interesting, and we would consult with the spectroscopist to determine if this sample is valid. That could be an issue with reagents or instrumentation. For our analysis here, we'll leave it alone and pick a model/pre-processing combination that appears unaffected.  
+At this point, the sample is very interesting, and we would consult with the spectroscopist to determine if it is valid. That could be an issue with reagents or instrumentation. For our analysis here, we'll leave it alone and pick a model/pre-processing combination that appears unaffected.  
 
 ```{r}
 #| label: fig-obs-pred-cv-comparison
@@ -738,14 +737,15 @@ all_pred_most %>%
 
 We must pick a pre-processing scheme and model type to define the official model. We'll choose the PLS model with `r best_pls$num_comp[which.min(best_pls$mean)]` components and the `r best_pls$Pre[which.min(best_pls$mean)]` pre-processing settings. The performance of this model is exceptional, especially given that a linear model has limited complexity (generally, simpler is better). The final model fit uses the optimized tuning parameters in conjunction with the entire training set of `r nrow(analysis(final_fit$splits[[1]]))` samples. 
 
-As an alternative to choosing a single, final model, a _stacking ensemble_ could selectively blend all of our existing models (and pre-processing methods) into a single model fit. These models can dynamically choose which methods to include or exclude to maximize performance [@breiman1996stacked;@smyth1999linearly]. 
+Now that we have the official model fit, our next step is to verify the results using the test set.  
+
+As an alternative to choosing between models, a _stacking ensemble_ could selectively blend all of our existing models (and pre-processing methods) into a single model fit. These models can dynamically choose which methods to include or exclude to maximize performance [@breiman1996stacked;@smyth1999linearly]. 
 
 ::: {.callout-important}
 ## **WTF** #12
 Stacking is worth trying if the training set is large. In these situations, it typically yields ensembles with slightly better results. Its importance has been inflated due to success in machine learning competitions. 
 :::
 
-Now that we have the official model fit, we verify the results using the test set.  
 
 # Test Set Results
 
