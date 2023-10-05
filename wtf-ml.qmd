@@ -62,7 +62,7 @@ Our goal is to discuss more realistic approaches to using machine learning in pr
 For example, it might make sense to discuss what the term "machine learning" means and under what circumstances it is appropriate. Historically, it usually connotes a specific type of black-block model, such as a neural network or support vector machine. This leads us to our first _what they forgot_ (WTF):
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #1
 
 Whether a model is a "machine learning model" depends on how it will be used rather than the mathematical defintion of the technique. If the goal of an analysis is to make the most accurate prediction possible, it's fair to use the ML label. 
 :::
@@ -70,7 +70,7 @@ Whether a model is a "machine learning model" depends on how it will be used rat
 It is difficult to argue that ML models focus on making the most accurate prediction of a new sample based on historical data. From that point of view, any sufficiently complex model that performs sufficiently well. For example, a linear regression could fit this definition by including appropriate interactions or nonlinear terms, such as spline basis expansions. The models most representative of the current zeitgeist are sophisticated and impenetrable methods such as neural networks and boosted trees. However...
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #2
 
 You probably don't need a complex black-box machine learning model (e.g. deep neural networks, large emsemble models, etc.). 
 :::
@@ -84,7 +84,7 @@ For some, there is a significant urge to fit complex ML models since they often 
 A disconnect occurs because most experimental data used in CMC applications are tabular (or can be made to be tabular). 
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #3
 
 Unless you are analyzing a large number of images, it is exceedingly unlikely that a deep-learning model is your best option. 
 :::
@@ -110,7 +110,7 @@ In the example outlined in this tutorial, several key input parameters were vari
 The first step in any modeling process is to understand the available data. 
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #4
 
 The only way to be comfortable with your data is to never look at them.  
 :::
@@ -187,7 +187,7 @@ ggplot(data_wide, aes(x = concentration)) +
 The primary objective of predictive modeling is to use the existing data to develop a model that predicts new samples as accurately as possible.  To achieve this objective, a process must be implemented that avoids over-fitting to the existing data [@kuhn2013applied; @Hawkins2004p1].  An over-fit model is one that accurately predicts the response for the data on which the model was trained but does not accurately predict new data.  To avoid over-fitting, we must construct a model-building process that mimics the prediction process for new samples.  One way to do this would be to split the data into training and test sets.  A model could be constructed with the training set, then predictive performance could be evaluated with the test set. 
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #5
 
 Always have an independent data set that can contradict what you think you may know. 
 :::
@@ -237,7 +237,7 @@ For the example presented here, a stratified random approach will be used to spl
 The raw predictor and response data may not in the best form to allow models reach their full predictive potential. The original data may contain highly correlated predictors, predictors that lack information, missing values, multi-category predictors, or highly skewed predictors.  Some models, such as those based on recursive partitioning algorithms, can handle most of these challenging characteristics.  However, many models either cannot be built, or the predictive performance will be detrimentally impacted when one or more of these characteristics are present.  As a simple example, consider a predictor with three categories: low, medium, and high.  The information, in this form, cannot be ingested by most models.  Instead, the information must be converted into either an ordinal-scaled predictor or two binary variables.  Missing data also wreaks havoc on predictive models because the models require non-missing information.  Therefore, appropriate pre-processing steps must be taken before model training.
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #6
 
 The stereotypical concept of a model is often confined to the supervised operation of estimating model parameters (e.g., slope and intercepts in linear regression, etc.). 
 
@@ -263,7 +263,7 @@ Partial least squares (PLS) is an example of the last category. The downside to 
 In practice, different models have affinities for different types of predictor sets. We often have to pair different predictor sets to different models and discover which strategy works and which does not. 
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #7
 
 The operations that you apply to the predictors before the model are at least as important as which supervised model you use. _Feature engineering_ [@fes] is the process of representing the predictor data in a way that makes the model have to work the least to be effective.
 :::
@@ -410,7 +410,7 @@ all_pca_data %>%
 Over the past half-century, the number and types of models for relating a set of predictors to a response has rapidly grown.  Improvements in computational power and mathematical complexity have been the primary drivers of this increase.  Traditionally, model complexity is generally tied to the number of parameters of a model.  As the number of model parameters increases, so does the ability of a model to adapt and morph to the relationship between predictors and the response.  For example, the basic partial least squares model has one tuning parameter and is effective at finding a linear relationship between predictors and the response.  However, this method is ineffective at finding non-linear relationships.  In contrast, consider a simple single-layer, feed-forward neural network.  This model can easily have many more parameters than the number of predictors.  For the example data, the number of predictors already exceeds the number of samples.  Therefore, even the simplest of neural network models can over-fit the available data without appropriate precautions.  
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #8
 
 Most ML models (or pre-processors) have tuning parameters: important parameters that cannot be directly estimated from the data (e.g., unlike a regression slope). 
 
@@ -424,7 +424,7 @@ How should the parameter sets be evaluated?  Answering this question depends on 
 In this manufacturing example, the response is continuous, and the metric of RMSE will be used to assess predictive performance.  
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #9
 
 The performance metric that you choose is important; poor choices can guide you to a "correct" answer that might be inappropriate. 
 
@@ -461,7 +461,7 @@ For each model, a set of 25 tuning parameter combinations are evaluated. For PLS
 For each tuning parameter combination, 5 repeats of 10-fold cross-validation are used to appropriately estimate the RMSE for future samples. We will examine the relationship between the tuning parameters and the estimated RMSE to help understand the performance patterns and to choose reasonable values for the parameters.  
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #10
 
 Despite the literature, optimizing hyper-parameters using grid search is effective and can be very efficient using advanced (but easy to use) computational and statistical methods
 :::
@@ -707,7 +707,7 @@ all_best %>%
 ```
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #11
 
 It is a common situation when multiple tuning parameter combinations have approximately the same level of performance. Likewise, it is rare that a single type of model completely outclasses the others. 
 :::
@@ -741,7 +741,7 @@ We must pick a pre-processing scheme and model type to define the official model
 As an alternative to choosing a single, final model, a _stacking ensemble_ could selectively blend all of our existing models (and pre-processing methods) into a single model fit. These models can dynamically choose which methods to include or exclude to maximize performance [@breiman1996stacked;@smyth1999linearly]. 
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #12
 Stacking is worth trying if the training set is large. In these situations, it typically yields ensembles with slightly better results. Its importance has been inflated due to success in machine learning competitions. 
 :::
 
@@ -776,10 +776,10 @@ final_fit %>%
 
 Assuming our final model will be used on additional unknown samples in the future, there are a few more tasks. First is documentation. This should involve descriptions of the training and test sets, their provenance, the process of optimizing and choosing the final model, and a description of its use case. 
 
-The amount of documentation and what should be included depends on how the predictions will be used and by whom. Speaking from experience regarding models for absorption, distribution, metabolism, excretion, and toxicology (ADMET) endpoints, the consumers of the model predictions were very focused on results for yet-to-be-synthesized molecules. Inconsistencies in predictions (real or perceived) could lead to intense interest in the model's particulars. Good documentation about what the model was good for (and not suitable for) was critical. _Model Cards_ [@mitchell2019model] offer a good template for getting started. 
+The amount of documentation and what should be included depends on how the predictions will be used and by whom. Speaking from experience regarding models for ADMET endpoints, the consumers of the model predictions were very focused on results for yet-to-be-synthesized molecules. Inconsistencies in predictions (real or perceived) could lead to intense interest in the model's particulars. Good documentation about what the model was good for (and not suitable for) was critical. _Model Cards_ [@mitchell2019model] offer a good template for getting started. 
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #13
 Defining and documenting the model's intended use is essential, called its applicability. If a wide variety of people can access the model, it is hard to control who will use it and for what purpose. Setting intentional limits of relevance is a good idea.  
 :::
 
@@ -787,7 +787,7 @@ In some cases, explaining how the model works and why it made specific predictio
 Finally, if a model is put into production, we must ensure it still meets its stated goals (i.e., applicability).  If more labeled samples are being accrued, a protocol for monitoring performance over time is critical in case the performance statistics begin to drift away from their original resampling/test set estimates. 
 
 ::: {.callout-important}
-## **WTF**
+## **WTF** #14
 
 _Models_ do not drift; data can change over time, as can the population being predicted. Tools called applicability domain methods [@netzeva2005current;@gadaleta2016applicability] help measure how far (if at all) a new sample is from the original training set (i.e., extrapolation). These values can accompany a new sample prediction to help gauge how dodgy a new sample may be. 
 :::
@@ -802,10 +802,7 @@ This tutorial was intended to provide readers with a realistic worked example of
 
 # Software and Data
 
-The code and data used to create this tutorial are found at
-[`https://github.com/kjell-stattenacity/Tutorial`](https://github.com/kjell-stattenacity/Tutorial). 
-
-[`r R.version.string`](http://cran.r-project.org) was used to create the analyses, and [Quarto version `r system("quarto --version", intern = TRUE)`](https://quarto.org) was used to create the pre-print document and website. The GitHub repository lists specific R package versions that were used. 
+The code and data used to create this tutorial are found on GitHub^[[`https://github.com/kjell-stattenacity/Tutorial`](https://github.com/kjell-stattenacity/Tutorial)].  [`r R.version.string`](http://cran.r-project.org) was used to create the analyses, and [Quarto version `r system("quarto --version", intern = TRUE)`](https://quarto.org) was used to create the pre-print document and website. The GitHub repository lists specific R package versions that were used. 
 
 ```{r}
 #| label: reference-header

@@ -90,7 +90,7 @@ div.csl-indent {
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #1
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -104,7 +104,7 @@ div.csl-indent {
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #2
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -121,7 +121,7 @@ div.csl-indent {
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #3
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -144,7 +144,7 @@ div.csl-indent {
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #4
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -154,7 +154,7 @@ div.csl-indent {
 <p>In this application, there is one sample from each of the 60 bioreactors. Raman spectroscopy has been applied to each sample, and the drug product concentration has been measured. <a href="#fig-raman-spectra" class="quarto-xref">Figure&nbsp;1</a> displays the original Raman spectra. From this figure, we can see that there is an initial downward trend towards the middle of the wavenumbers, then an upward trend towards the higher wavenumbers. The intensities are not randomly scattered. Instead, there is a relationship across wavenumbers with intensity. This relationship indicates that wavenumber intensities are correlated with each other. In fact, the correlation between the majority of adjacent wavenumbers is greater than 0.99.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-raman-spectra" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="80%" data-fig-pos="t!">
+<div id="fig-raman-spectra" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" data-fig-align="center" width="80%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-raman-spectra-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-raman-spectra-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%" data-fig-pos="t!">
 </div>
@@ -167,7 +167,7 @@ Figure&nbsp;1: Raman spectra profiles for each of the 60 samples.
 <p>To illustrate this more clearly, let’s examine the relationship among wavenumber measurements for the first sample. For the first sample, the first 3000 lags are created. TODO why 3000? To create a lag, the data is shifted by a specified number of rows to create a new variable. For example, to create the first lag, the wavenumber measurements are shifted over by one wavenumber. To create the second lag, the measurements are shifted by two wavenumberes, and so on. <a href="#fig-lagged-spectra" class="quarto-xref">Figure&nbsp;2</a> illustrates the correlation between each subsequent lag for the first 1000 lags. Clearly, close wavenumbers have a high correlation, whereas far wavenumbers have a low correlation. As we will see, understanding this characteristic will be very important when deciding how to pre-process the data prior to modeling and which models to train.</p>
 <div class="cell" data-layout-align="center" data-hash="_cache/fig-lagged-spectra_57f627c3607bc6c5576c2e73ea98aefe">
 <div class="cell-output-display">
-<div id="fig-lagged-spectra" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="60%" data-fig-pos="t!">
+<div id="fig-lagged-spectra" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" data-fig-align="center" width="60%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-lagged-spectra-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-lagged-spectra-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%" data-fig-pos="t!">
 </div>
@@ -181,7 +181,7 @@ Figure&nbsp;2: The correlation between the original intensities and lagged inten
 <p>In addition to understanding the predictors, we should also understand the characteristics of the response. Examining the response distribution can help determine if a transformation may be necessary or detect unusal outcome values. <a href="#fig-concentration" class="quarto-xref">Figure&nbsp;3</a> presents the histogram of drug product concentration across the samples. For this data, the distribution is approximately symmetric and has a range of 85 to 115. Based on this figure, a transformation does not appear necessary, and there are no unusual samples.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-concentration" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="60%" data-fig-pos="t!">
+<div id="fig-concentration" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" data-fig-align="center" width="60%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-concentration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-concentration-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%" data-fig-pos="t!">
 </div>
@@ -199,7 +199,7 @@ Figure&nbsp;3: The distribution of drug product concentration across samples.
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #5
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -210,7 +210,7 @@ Figure&nbsp;3: The distribution of drug product concentration across samples.
 <p>Instead of a single training/test split, we need a process that can be used to evaluate many tuning parameter values for each of many different models. <a href="#fig-resampling" class="quarto-xref">Figure&nbsp;4</a> illustrates a two-layered process that incorporates the use of resampling. The first layer splits the entire data set into a training and test set. In general, anywhere between 50% to 80% of the data is randomly selected for the training data, while the remaining data is placed in the test set. A random split may be adequate but, in some cases, we can use <em>stratified</em> splitting. This can help keep the distirbution of some variable relatvely the same between the training and testing sets.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-resampling" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="80%" data-fig-pos="t!">
+<div id="fig-resampling" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" data-fig-align="center" width="80%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-resampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="premade/resampling.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%" data-fig-pos="t!">
 </div>
@@ -223,7 +223,7 @@ Figure&nbsp;4: Illustration of a general data usage scheme that incorporates res
 <p>The training data is further split into resamples as shown in the second layer of <a href="#fig-resampling" class="quarto-xref">Figure&nbsp;4</a>. Resampling methods make alternate versions of the training set via additional partitions. Cross-validation is one of the more popular resampling schemes. It could be used in this layer, where the data is split into <span class="math inline">\(V\)</span> folds. For example, if 10-fold cross-validation were used in this layer, then the training data would be partitioned into 10 folds. The analysis set for the first resample would contain 9 folds of the data, while the assessment set would contain 1 fold of the data. A model would be constructed using the 9 folds and would evaluated using the hold-out fold. To create the analysis set for the second resample, a different combination of 9-folds would be used to construct the model. The model would then be evaluated on the fold that was not used in the modeling. For illustration, <a href="#fig-three-fold" class="quarto-xref">Figure&nbsp;5</a> provides an illustration of 3-fold cross-validation (although <span class="math inline">\(V = 10\)</span> is a much better choice).</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-three-fold" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="60%" data-fig-pos="t!">
+<div id="fig-three-fold" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" data-fig-align="center" width="60%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-three-fold-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="premade/three-CV.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%" data-fig-pos="t!">
 </div>
@@ -242,7 +242,7 @@ Figure&nbsp;5: A diagram of how 3-fold cross-validation can be used with 30 data
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #6
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -268,7 +268,7 @@ Figure&nbsp;5: A diagram of how 3-fold cross-validation can be used with 30 data
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #7
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -281,7 +281,7 @@ Figure&nbsp;5: A diagram of how 3-fold cross-validation can be used with 30 data
 <p>A polynomial smoother <span class="citation" data-cites="cleveland1988locally luers1971polynomial">(<a href="#ref-cleveland1988locally" role="doc-biblioref">Cleveland and Devlin 1988</a>; <a href="#ref-luers1971polynomial" role="doc-biblioref">Luers and Wenning 1971</a>)</span> is one tool that can be used to approximate the background. <a href="#fig-profile-baseline-poly" class="quarto-xref">Figure&nbsp;6</a> illustrates the original spectra for the first sample, the background as modeled by a polynomial smoother, and the corrected spectra. Notice that the corrected spectra are now more anchored with intensities at or near zero.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-profile-baseline-poly" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="80%" data-fig-pos="t!">
+<div id="fig-profile-baseline-poly" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" data-fig-align="center" width="80%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-profile-baseline-poly-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-profile-baseline-poly-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%" data-fig-pos="t!">
 </div>
@@ -295,7 +295,7 @@ Figure&nbsp;6: The distribution standard deviation of intensity measurements acr
 <p>The Savitzky-Golay (SG) procedure <span class="citation" data-cites="savitzky1964smoothing stevens2022">(<a href="#ref-savitzky1964smoothing" role="doc-biblioref">Savitzky and Golay 1964</a>; <a href="#ref-stevens2022" role="doc-biblioref">Stevens and Ramirez-Lopez 2022</a>)</span> is designed to remove spurious signals by simultaneously smoothing the data while also centering the overall signal and dampening variability. The procedure is governed by the order of differentiation, degree of polynomial, and window size. <a href="#fig-sg-filtering" class="quarto-xref">Figure&nbsp;7</a> compares the impact of this procedure for differentiation order of 1 or 2, polynomial order of 2, and a small (15) or large (49) window size. We’ll use the notation “(d, p, w)” to describe specifics of SG where the differentiation order, polynomial order, and window size values are used within the paraentheses, such as (1, 2, 45).</p>
 <div class="cell" data-layout-align="center" data-hash="_cache/fig-sg-filtering_ad0075c131fb31533d323335b6640607">
 <div class="cell-output-display">
-<div id="fig-sg-filtering" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="60%" data-fig-pos="t!">
+<div id="fig-sg-filtering" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" data-fig-align="center" width="60%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-sg-filtering-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-sg-filtering-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%" data-fig-pos="t!">
 </div>
@@ -310,7 +310,7 @@ Figure&nbsp;7: The impact of the Savitzky-Golay procedure on the Raman spectra.
 <p>For these data, principal component analysis can be conducted on the training set predictors (after centering and scaling the predictors). This can help us understand if there are any unwanted systematic effects in the data (such as differences in reagents, instruments, etc.). <a href="#fig-pca-plot" class="quarto-xref">Figure&nbsp;8</a> shows the results using two components. These components accounted for between 65%-95% of the predictor information, with the exception of the (2, 2, 15) set, which only captured about 45%. With the exception of a single sample, there are no obvious patterns in the results to give us pause (such as clustering). That odd sample, number 34, is the same data point in <a href="#fig-raman-spectra" class="quarto-xref">Figure&nbsp;1</a> with relatively low intensity compared to the other spectra. It is unclear how this would affect the results (if at all), so it was retained in the data set. Later analyses will examine whether this sample is associated with larger residuals.</p>
 <div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div id="fig-pca-plot" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="80%" data-fig-pos="t!">
+<div id="fig-pca-plot" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" data-fig-align="center" width="80%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pca-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-pca-plot-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%" data-fig-pos="t!">
 </div>
@@ -328,7 +328,7 @@ Figure&nbsp;8: Two-component PCA plots for each pre-processing method. One parti
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #8
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -345,7 +345,7 @@ Figure&nbsp;8: Two-component PCA plots for each pre-processing method. One parti
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #9
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -373,7 +373,7 @@ Figure&nbsp;8: Two-component PCA plots for each pre-processing method. One parti
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #10
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -385,7 +385,7 @@ Figure&nbsp;8: Two-component PCA plots for each pre-processing method. One parti
 <p>Finally, grid search had been considered inefficient because of the assumption that regular (i.e., full factorial) grids were used. If we evaluated <span class="math inline">\(L\)</span> values of each of <span class="math inline">\(M\)</span> tuning parameters, the full factorial set of <span class="math inline">\(L^M\)</span> combinations can become very large. This is no surprise to most CMC statisticians and engineers. However, as previously mentioned, the better design choices for grid search are space-filling designs. It is difficult to quantify the positive impact these designs have had on optimizing models in terms of efficiency and efficacy. <a href="#fig-sfd" class="quarto-xref">Figure&nbsp;9</a> shows an example Audze-Eglais design from <span class="citation" data-cites="husslage2011space">Husslage et al. (<a href="#ref-husslage2011space" role="doc-biblioref">2011</a>)</span> for the two Cubist tuning parameters and 25 candidate points.</p>
 <div class="cell" data-layout-align="center" data-hash="_cache/fig-sfd_578dcec9fdf623c7e119052d149bafd8">
 <div class="cell-output-display">
-<div id="fig-sfd" class="quarto-figure quarto-figure-center anchored" data-fig-align="center" width="45%" data-fig-pos="t!">
+<div id="fig-sfd" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" data-fig-align="center" width="45%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-sfd-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-sfd-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:45.0%" data-fig-pos="t!">
 </div>
@@ -464,7 +464,7 @@ Figure&nbsp;13: Cross-validation predictive performance using the optimal tuning
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #11
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -494,7 +494,7 @@ Figure&nbsp;14: Comparison of observed versus hold-out predicted values from cro
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #12
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -519,14 +519,14 @@ Figure&nbsp;15: Observed and predicted values for the test set.
 </div>
 </section><section id="post-modeling-activities" class="level1"><h1>Post-Modeling Activities</h1>
 <p>Assuming our final model will be used on additional unknown samples in the future, there are a few more tasks. First is documentation. This should involve descriptions of the training and test sets, their provenance, the process of optimizing and choosing the final model, and a description of its use case.</p>
-<p>The amount of documentation and what should be included depends on how the predictions will be used and by whom. Speaking from experience regarding models for absorption, distribution, metabolism, excretion, and toxicology (ADMET) endpoints, the consumers of the model predictions were very focused on results for yet-to-be-synthesized molecules. Inconsistencies in predictions (real or perceived) could lead to intense interest in the model’s particulars. Good documentation about what the model was good for (and not suitable for) was critical. <em>Model Cards</em> <span class="citation" data-cites="mitchell2019model">(<a href="#ref-mitchell2019model" role="doc-biblioref">Mitchell et al. 2019</a>)</span> offer a good template for getting started.</p>
+<p>The amount of documentation and what should be included depends on how the predictions will be used and by whom. Speaking from experience regarding models for ADMET endpoints, the consumers of the model predictions were very focused on results for yet-to-be-synthesized molecules. Inconsistencies in predictions (real or perceived) could lead to intense interest in the model’s particulars. Good documentation about what the model was good for (and not suitable for) was critical. <em>Model Cards</em> <span class="citation" data-cites="mitchell2019model">(<a href="#ref-mitchell2019model" role="doc-biblioref">Mitchell et al. 2019</a>)</span> offer a good template for getting started.</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #13
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -540,7 +540,7 @@ Figure&nbsp;15: Observed and predicted values for the test set.
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<strong>WTF</strong>
+<strong>WTF</strong> #14
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -552,8 +552,7 @@ Figure&nbsp;15: Observed and predicted values for the test set.
 </section><section id="conclusions" class="level1"><h1>Conclusions</h1>
 <p>This tutorial was intended to provide readers with a realistic worked example of machine learning with a CMC application and demonstrate that there is still a fair amount of art in this particular area of science. The content in most of our WTF items is borne out of experience. Our advice for practitioners starting out is to read as much literature as possible, try many different approaches, and be very dogmatic about thoroughly validating your results.</p>
 </section><section id="software-and-data" class="level1"><h1>Software and Data</h1>
-<p>The code and data used to create this tutorial are found at <a href="https://github.com/kjell-stattenacity/Tutorial"><code>https://github.com/kjell-stattenacity/Tutorial</code></a>.</p>
-<p><a href="http://cran.r-project.org">R version 4.3.1 (2023-06-16)</a> was used to create the analyses, and <a href="https://quarto.org">Quarto version 1.4.376</a> was used to create the pre-print document and website. The GitHub repository lists specific R package versions that were used.</p>
+<p>The code and data used to create this tutorial are found on GitHub<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. <a href="http://cran.r-project.org">R version 4.3.1 (2023-06-16)</a> was used to create the analyses, and <a href="https://quarto.org">Quarto version 1.4.376</a> was used to create the pre-print document and website. The GitHub repository lists specific R package versions that were used.</p>
 
 </section><div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
 <div id="ref-Abdi2010p3532" class="csl-entry" role="listitem">
@@ -706,6 +705,7 @@ Wold, Svante, Michael Sjöström, and Lennart Eriksson. 2001. <span>“PLS-Regre
 </div></section><aside id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
 <ol>
 <li id="fn1"><p><a href="https://chat.openai.com/"><code>https://chat.openai.com</code></a><a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p><a href="https://github.com/kjell-stattenacity/Tutorial"><code>https://github.com/kjell-stattenacity/Tutorial</code></a><a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol></aside></div></main><!-- /main column --><script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
