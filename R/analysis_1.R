@@ -2,6 +2,9 @@ library(tidymodels)
 library(plsmod)
 library(rules)
 
+# We'll use an optimized space-filling deisng not yet in tidymodels
+library(sfd) # topepo/sfd
+
 # We use parallel processing on unix via forking. This pacakge is not available 
 # for windows but you can do something similar with the doParallel package
 library(doMC)
@@ -29,7 +32,7 @@ preproc_1 <- tibble(differentiation_order = 1, polynomial_order = 2, window_size
 data_1 <- 
   processed_data %>% 
   inner_join(preproc_1, by = c("differentiation_order", "polynomial_order", "window_size")) %>% 
-  select(-differentiation_order, -polynomial_order, -window_size)
+  dplyr::select(-differentiation_order, -polynomial_order, -window_size)
 
 set.seed(910)
 split_1 <- initial_split(data_1, strata = concentration, prop = 0.77)
@@ -53,7 +56,7 @@ base_rec_1 <-
 
 # Save the hold-out predictions
 grid_ctrl <- control_grid(save_pred = TRUE, parallel_over = "everything")
-bayes_ctrl <- control_bayes(save_pred = TRUE)
+bayes_ctrl <- control_bayes(save_pred = TRUE, no_improve = Inf)
 
 # ------------------------------------------------------------------------------
 # Partial least squares analysis
@@ -73,7 +76,7 @@ pls_wflow_1 <-
 pls_tune_1 <-
   tune_grid(pls_wflow_1,
             resamples = folds_1, 
-            grid = tibble(num_comp = 1:15),
+            grid = tibble(num_comp = 1:25),
             control = grid_ctrl)
 
 pls_metrics_1 <- 
@@ -84,7 +87,12 @@ pls_metrics_1 <-
 pls_pred_1 <- 
   collect_predictions(pls_tune_1, summarize = TRUE) %>% 
   cbind(preproc_1) %>% 
-  as_tibble()
+  as_tibble() %>% 
+  inner_join(
+    train_1 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row)
 
 # ------------------------------------------------------------------------------
 # Random forest analysis
@@ -96,10 +104,15 @@ rf_spec <-
 # For random forest, the range of mtry depends on the number of columns and that
 # number will change over different preprocessing values. Here we figure out the
 # number of predictors, make a grid, and also convert mtry to a proportion that
-# cna be used for plotting later. 
-num_predictors_1 <- sum(grepl("^x", names(train_1)))
+# can be used for plotting later. 
+# However, larger differentiation orders result in columns with all missing values.
+# For this reason, we prep the recipe on the training set and derive the number 
+# of predictors from the process version of the training set. 
+
+prepped_1 <- prep(base_rec_1) %>% bake(new_data = NULL)
+num_predictors_1 <- sum(grepl("^x", names(prepped_1)))
 mtry_obj_1 <- mtry(c(1, num_predictors_1))
-mtry_vals_1 <- value_seq(mtry_obj_1, 15)
+mtry_vals_1 <- unique(value_seq(mtry_obj_1, 25))
 mtry_prop_1 <- tibble(mtry = mtry_vals_1, prop = mtry_vals_1 / num_predictors_1)
 
 set.seed(382)
@@ -120,7 +133,12 @@ rf_pred_1 <-
   collect_predictions(rf_tune_1, summarize = TRUE) %>% 
   cbind(preproc_1) %>% 
   as_tibble() %>% 
-  full_join(mtry_prop_1, by = "mtry")
+  full_join(mtry_prop_1, by = "mtry") %>% 
+  inner_join(
+    train_1 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row)
 
 
 # ------------------------------------------------------------------------------
@@ -128,12 +146,20 @@ rf_pred_1 <-
 
 cubist_spec <- cubist_rules(committees = tune(), neighbors = tune())
 
+cb_grid <- 
+  get_design(2, 25) %>% 
+  update_values(
+    list(committees() %>% value_seq(25), rep_len(0:9, 25))
+  ) %>% 
+  setNames(c("committees", "neighbors"))
+
+
 set.seed(382)
 cb_tune_1 <-
   cubist_spec %>% 
   tune_grid(base_rec_1,
             resamples = folds_1, 
-            grid = 15,
+            grid = cb_grid,
             control = grid_ctrl)
 
 cb_metrics_1 <- 
@@ -144,7 +170,12 @@ cb_metrics_1 <-
 cb_pred_1 <- 
   collect_predictions(cb_tune_1, summarize = TRUE) %>% 
   cbind(preproc_1) %>% 
-  as_tibble() 
+  as_tibble() %>% 
+  inner_join(
+    train_1 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row) 
 
 
 # ------------------------------------------------------------------------------
@@ -168,7 +199,7 @@ svm_init_1 <-
   svm_spec %>% 
   tune_grid(base_rec_1,
             resamples = folds_1, 
-            grid = 5,
+            grid = 10,
             control = grid_ctrl)
 
 set.seed(382)
@@ -176,7 +207,7 @@ svm_tune_1 <-
   svm_spec %>% 
   tune_bayes(base_rec_1,
              resamples = folds_1, 
-             iter = 10,
+             iter = 15,
              initial = svm_init_1,
              control = bayes_ctrl)
 
@@ -188,13 +219,58 @@ svm_metrics_1 <-
 svm_pred_1 <- 
   collect_predictions(svm_tune_1, summarize = TRUE) %>% 
   cbind(preproc_1) %>% 
+  as_tibble() %>% 
+  inner_join(
+    train_1 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row) 
+
+# ------------------------------------------------------------------------------
+# PCA components for diagnostic plots 
+
+rec_pca_1 <- 
+  norm_rec_1 %>% 
+  step_normalize(starts_with("x")) %>% 
+  step_pca(starts_with("x"), num_comp = 5, id = "pca") %>% 
+  prep()
+
+pca_data_1 <- 
+  rec_pca_1 %>% 
+  bake(new_data = NULL) %>% 
+  cbind(preproc_1) %>% 
   as_tibble() 
+
+pca_var_1 <- 
+  rec_pca_1 %>% 
+  tidy(id = "pca", type = "variance") %>% 
+  filter(terms == "cumulative percent variance") %>% 
+  dplyr::select(value, component) %>% 
+  cbind(preproc_1) %>% 
+  as_tibble() 
+
+# ------------------------------------------------------------------------------
+# Final results
+
+best_pls_1 <- 
+  select_best(pls_tune_1, metric = "rmse")
+
+final_wflow <- 
+  pls_wflow_1 %>% 
+  finalize_workflow(best_pls_1)
+
+final_fit <- last_fit(final_wflow, split = split_1)
 
 # ------------------------------------------------------------------------------
 # Collate results for this pre-processing configuration
 
 res_1 <- ls(pattern = "(_metrics_1)|(_pred_1)")
 save(list = res_1, file = "RData/preproc_results_1.RData", compress = TRUE)
+
+res_pca_1 <- ls(pattern = "^pca_")
+save(list = res_pca_1, file = "RData/pca_results_1.RData", compress = TRUE)
+
+save(final_fit, file = "RData/final_fit.RData", compress = TRUE)
 
 
 # ------------------------------------------------------------------------------

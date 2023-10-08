@@ -3,6 +3,7 @@
 library(tidymodels)
 library(plsmod)
 library(rules)
+library(sfd) # topepo/sfd
 library(doMC)
 
 # ------------------------------------------------------------------------------
@@ -20,6 +21,8 @@ load("RData/data_wide.RData")
 
 # ------------------------------------------------------------------------------
 # No pre-processing
+
+preproc_0 <- tibble(differentiation_order = NA, polynomial_order = NA, window_size = NA)
 
 set.seed(910)
 split_0 <- initial_split(data_wide, strata = concentration, prop = 0.77)
@@ -40,7 +43,7 @@ grid_ctrl <-
   control_grid(save_pred = TRUE,  # Save the hold-out predictions
                parallel_over = "everything")
 
-bayes_ctrl <- control_bayes(save_pred = TRUE)
+bayes_ctrl <- control_bayes(save_pred = TRUE, no_improve = Inf)
 
 # ------------------------------------------------------------------------------
 # Partial least squares analysis
@@ -59,14 +62,23 @@ pls_wflow_0 <-
 pls_tune_0 <-
   tune_grid(pls_wflow_0,
             resamples = folds_0, 
-            grid = tibble(num_comp = 1:15),
+            grid = tibble(num_comp = 1:25),
             control = grid_ctrl)
 
 pls_metrics_0 <- 
-  collect_metrics(pls_tune_0) 
+  collect_metrics(pls_tune_0) %>% 
+  cbind(preproc_0) %>% 
+  as_tibble() 
 
 pls_pred_0 <- 
-  collect_predictions(pls_tune_0, summarize = TRUE) 
+  collect_predictions(pls_tune_0, summarize = TRUE) %>% 
+  cbind(preproc_0) %>% 
+  as_tibble() %>% 
+  inner_join(
+    train_0 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row)
 
 # ------------------------------------------------------------------------------
 # Random forest analysis
@@ -75,9 +87,10 @@ rf_spec <-
   rand_forest(mtry = tune(), trees = 1000) %>%
   set_mode("regression")
 
-num_predictors_0 <- sum(grepl("^x", names(train_0)))
+prepped_0 <- prep(base_rec_0) %>% bake(new_data = NULL)
+num_predictors_0 <- sum(grepl("^x", names(prepped_0)))
 mtry_obj_0 <- mtry(c(2, num_predictors_0))
-mtry_vals_0 <- value_seq(mtry_obj_0, 15)
+mtry_vals_0 <- unique(value_seq(mtry_obj_0, 25))
 mtry_prop_0 <- tibble(mtry = mtry_vals_0, prop = mtry_vals_0 / num_predictors_0)
 
 set.seed(382)
@@ -90,11 +103,20 @@ rf_tune_0 <-
 
 rf_metrics_0 <- 
   collect_metrics(rf_tune_0) %>% 
-  full_join(mtry_prop_0, by = "mtry")
+  full_join(mtry_prop_0, by = "mtry") %>% 
+  cbind(preproc_0) %>% 
+  as_tibble()
 
 rf_pred_0 <- 
   collect_predictions(rf_tune_0, summarize = TRUE) %>% 
-  full_join(mtry_prop_0, by = "mtry")
+  full_join(mtry_prop_0, by = "mtry") %>% 
+  cbind(preproc_0) %>% 
+  as_tibble() %>% 
+  inner_join(
+    train_0 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row)
 
 
 # ------------------------------------------------------------------------------
@@ -102,19 +124,35 @@ rf_pred_0 <-
 
 cubist_spec <- cubist_rules(committees = tune(), neighbors = tune())
 
+cb_grid <- 
+  get_design(2, 25) %>% 
+  update_values(
+    list(committees() %>% value_seq(25), rep_len(0:9, 25))
+  ) %>% 
+  setNames(c("committees", "neighbors"))
+
 set.seed(382)
 cb_tune_0 <-
   cubist_spec %>% 
   tune_grid(base_rec_0,
             resamples = folds_0, 
-            grid = 15,
+            grid = cb_grid,
             control = grid_ctrl)
 
 cb_metrics_0 <- 
-  collect_metrics(cb_tune_0) 
+  collect_metrics(cb_tune_0) %>% 
+  cbind(preproc_0) %>% 
+  as_tibble()
 
 cb_pred_0 <- 
-  collect_predictions(cb_tune_0, summarize = TRUE) 
+  collect_predictions(cb_tune_0, summarize = TRUE) %>% 
+  cbind(preproc_0) %>% 
+  as_tibble() %>% 
+  inner_join(
+    train_0 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row)
 
 
 # ------------------------------------------------------------------------------
@@ -134,7 +172,7 @@ svm_init_0 <-
   svm_spec %>% 
   tune_grid(base_rec_0,
             resamples = folds_0, 
-            grid = 5,
+            grid = 10,
             control = grid_ctrl)
 
 set.seed(382)
@@ -142,21 +180,56 @@ svm_tune_0 <-
   svm_spec %>% 
   tune_bayes(base_rec_0,
              resamples = folds_0, 
-             iter = 10,
+             iter = 15,
              initial = svm_init_0,
              control = bayes_ctrl)
 
 svm_metrics_0 <- 
-  collect_metrics(svm_tune_0)
+  collect_metrics(svm_tune_0) %>% 
+  cbind(preproc_0) %>% 
+  as_tibble()
 
 svm_pred_0 <- 
-  collect_predictions(svm_tune_0, summarize = TRUE) 
+  collect_predictions(svm_tune_0, summarize = TRUE) %>% 
+  cbind(preproc_0) %>% 
+  as_tibble()  %>% 
+  inner_join(
+    train_0 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row)
+
+# ------------------------------------------------------------------------------
+# PCA components for diagnostic plots 
+
+rec_pca_0 <- 
+  norm_rec_0 %>% 
+  step_normalize(starts_with("x")) %>% 
+  step_pca(starts_with("x"), num_comp = 5, id = "pca") %>% 
+  prep()
+
+pca_data_0 <- 
+  rec_pca_0 %>% 
+  bake(new_data = NULL) %>% 
+  cbind(preproc_0) %>% 
+  as_tibble() 
+
+pca_var_0 <- 
+  rec_pca_0 %>% 
+  tidy(id = "pca", type = "variance") %>% 
+  filter(terms == "cumulative percent variance") %>% 
+  dplyr::select(value, component) %>% 
+  cbind(preproc_0) %>% 
+  as_tibble() 
 
 # ------------------------------------------------------------------------------
 # Collate results for this pre-processing configuration
 
 res_0 <- ls(pattern = "(_metrics_0)|(_pred_0)")
 save(list = res_0, file = "RData/preproc_results_0.RData", compress = TRUE)
+
+res_pca_0 <- ls(pattern = "^pca_")
+save(list = res_pca_0, file = "RData/pca_results_0.RData", compress = TRUE)
 
 # ------------------------------------------------------------------------------
 

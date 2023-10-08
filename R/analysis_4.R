@@ -3,6 +3,7 @@
 library(tidymodels)
 library(plsmod)
 library(rules)
+library(sfd) # topepo/sfd
 library(doMC)
 
 # ------------------------------------------------------------------------------
@@ -20,14 +21,14 @@ load("RData/processed_data.RData")
 load("RData/data_wide.RData")
 
 # ------------------------------------------------------------------------------
-# Analysis of pre-processor 4: diffs = 1, poly = 2, window = 49
+# Analysis of pre-processor 4: diffs = 2, poly = 2, window = 49
 
-preproc_4 <- tibble(differentiation_order = 1, polynomial_order = 2, window_size = 49)
+preproc_4 <- tibble(differentiation_order = 2, polynomial_order = 2, window_size = 49)
 
 data_4 <- 
   processed_data %>% 
   inner_join(preproc_4, by = c("differentiation_order", "polynomial_order", "window_size")) %>% 
-  select(-differentiation_order, -polynomial_order, -window_size)
+  dplyr::select(-differentiation_order, -polynomial_order, -window_size)
 
 set.seed(910)
 split_4 <- initial_split(data_4, strata = concentration, prop = 0.77)
@@ -53,7 +54,7 @@ grid_ctrl <-
   control_grid(save_pred = TRUE,  # Save the hold-out predictions
                parallel_over = "everything")
 
-bayes_ctrl <- control_bayes(save_pred = TRUE)
+bayes_ctrl <- control_bayes(save_pred = TRUE, no_improve = Inf)
 
 # ------------------------------------------------------------------------------
 # Partial least squares analysis
@@ -72,7 +73,7 @@ pls_wflow_4 <-
 pls_tune_4 <-
   tune_grid(pls_wflow_4,
             resamples = folds_4, 
-            grid = tibble(num_comp = 1:15),
+            grid = tibble(num_comp = 1:25),
             control = grid_ctrl)
 
 pls_metrics_4 <- 
@@ -83,7 +84,12 @@ pls_metrics_4 <-
 pls_pred_4 <- 
   collect_predictions(pls_tune_4, summarize = TRUE) %>% 
   cbind(preproc_4) %>% 
-  as_tibble()
+  as_tibble() %>% 
+  inner_join(
+    train_4 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row)
 
 # ------------------------------------------------------------------------------
 # Random forest analysis
@@ -92,9 +98,10 @@ rf_spec <-
   rand_forest(mtry = tune(), trees = 1000) %>%
   set_mode("regression")
 
-num_predictors_4 <- sum(grepl("^x", names(train_4)))
+prepped_4 <- prep(base_rec_4) %>% bake(new_data = NULL)
+num_predictors_4 <- sum(grepl("^x", names(prepped_4)))
 mtry_obj_4 <- mtry(c(2, num_predictors_4))
-mtry_vals_4 <- value_seq(mtry_obj_4, 15)
+mtry_vals_4 <- unique(value_seq(mtry_obj_4, 25))
 mtry_prop_4 <- tibble(mtry = mtry_vals_4, prop = mtry_vals_4 / num_predictors_4)
 
 set.seed(382)
@@ -115,7 +122,12 @@ rf_pred_4 <-
   collect_predictions(rf_tune_4, summarize = TRUE) %>% 
   cbind(preproc_4) %>% 
   as_tibble() %>% 
-  full_join(mtry_prop_4, by = "mtry")
+  full_join(mtry_prop_4, by = "mtry") %>% 
+  inner_join(
+    train_4 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row)
 
 
 # ------------------------------------------------------------------------------
@@ -123,12 +135,19 @@ rf_pred_4 <-
 
 cubist_spec <- cubist_rules(committees = tune(), neighbors = tune())
 
+cb_grid <- 
+  get_design(2, 25) %>% 
+  update_values(
+    list(committees() %>% value_seq(25), rep_len(0:9, 25))
+  ) %>% 
+  setNames(c("committees", "neighbors"))
+
 set.seed(382)
 cb_tune_4 <-
   cubist_spec %>% 
   tune_grid(base_rec_4,
             resamples = folds_4, 
-            grid = 15,
+            grid = cb_grid,
             control = grid_ctrl)
 
 cb_metrics_4 <- 
@@ -139,7 +158,12 @@ cb_metrics_4 <-
 cb_pred_4 <- 
   collect_predictions(cb_tune_4, summarize = TRUE) %>% 
   cbind(preproc_4) %>% 
-  as_tibble() 
+  as_tibble() %>% 
+  inner_join(
+    train_4 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row) 
 
 
 # ------------------------------------------------------------------------------
@@ -159,7 +183,7 @@ svm_init_4 <-
   svm_spec %>% 
   tune_grid(base_rec_4,
             resamples = folds_4, 
-            grid = 5,
+            grid = 10,
             control = grid_ctrl)
 
 set.seed(382)
@@ -167,7 +191,7 @@ svm_tune_4 <-
   svm_spec %>% 
   tune_bayes(base_rec_4,
              resamples = folds_4, 
-             iter = 10,
+             iter = 15,
              initial = svm_init_4,
              control = bayes_ctrl)
 
@@ -179,6 +203,34 @@ svm_metrics_4 <-
 svm_pred_4 <- 
   collect_predictions(svm_tune_4, summarize = TRUE) %>% 
   cbind(preproc_4) %>% 
+  as_tibble() %>% 
+  inner_join(
+    train_4 %>% add_rowindex() %>% dplyr::select(.row, sample_id),
+    by = ".row"
+  ) %>% 
+  dplyr::select(-.row) 
+
+# ------------------------------------------------------------------------------
+# PCA components for diagnostic plots 
+
+rec_pca_4 <- 
+  norm_rec_4 %>% 
+  step_normalize(starts_with("x")) %>% 
+  step_pca(starts_with("x"), num_comp = 5, id = "pca") %>% 
+  prep()
+
+pca_data_4 <- 
+  rec_pca_4 %>% 
+  bake(new_data = NULL) %>% 
+  cbind(preproc_4) %>% 
+  as_tibble() 
+
+pca_var_4 <- 
+  rec_pca_4 %>% 
+  tidy(id = "pca", type = "variance") %>% 
+  filter(terms == "cumulative percent variance") %>% 
+  dplyr::select(value, component) %>% 
+  cbind(preproc_4) %>% 
   as_tibble() 
 
 # ------------------------------------------------------------------------------
@@ -186,6 +238,9 @@ svm_pred_4 <-
 
 res_4 <- ls(pattern = "(_metrics_4)|(_pred_4)")
 save(list = res_4, file = "RData/preproc_results_4.RData", compress = TRUE)
+
+res_pca_4 <- ls(pattern = "^pca_")
+save(list = res_pca_4, file = "RData/pca_results_4.RData", compress = TRUE)
 
 # ------------------------------------------------------------------------------
 
