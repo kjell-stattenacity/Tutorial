@@ -44,7 +44,6 @@ library(sfd)   # from github.com/topepo/sfd
 library(patchwork)
 library(tidymodels)
 library(rules)
-library(gridExtra)
 
 # ------------------------------------------------------------------------------
 
@@ -59,6 +58,26 @@ load("RData/data_wide.RData")
 load("RData/processed_data.RData")
 load("RData/all_results.RData")
 load("RData/final_fit.RData")
+
+# ------------------------------------------------------------------------------
+
+models <- c( "Partial Least Squares", "Random Forest", "Cubist", "Support Vector Machine")
+preproc <- c("No Pre-Processing", "(1, 2, 15)", "(2, 2, 15)", "(1, 2, 49)", "(2, 2, 49)")
+
+make_preproc_code <- function(do, po, ws) {
+  ifelse( 
+    is.na(do), 
+    "No Pre-Processing",
+    paste0("(", do, ", ", po, ", ", ws, ")")
+  )
+}
+
+acf_calcs <- function(x, n = 1000) {
+  shifted <- data.table::shift(x$value, n = 1:n)
+  shifted <- do.call("cbind", shifted)
+  cor_mat <- cor(shifted, use = "pairwise.complete.obs")
+  tibble(correlation = cor_mat[, 1], lag = 1:nrow(cor_mat))
+}
 ```
 
 (This is a preprint of an article submitted to a _Pharmaceutical Statistics_ special nonclinical tutorial edition)
@@ -157,16 +176,13 @@ To illustrate this more clearly, let's examine the relationship among wavenumber
 sample_1_long <-
   data_long %>%
   dplyr::filter(sample_id == 1)
-  
-shifted <- data.table::shift(sample_1_long$intensity, n = 1:1000)
-names(shifted) <- names0(length(shifted))
-shifted <- as_tibble(shifted)
 
-cor_shifted <- cor(shifted[, 1:1000], use = "pairwise.complete.obs")
-
-for_cor_fig <- tibble(cor = cor_shifted[, 1], Lag = 1:nrow(cor_shifted))
+for_cor_fig <- 
+  sample_1_long %>% 
+  select(value = intensity) %>% 
+  acf_calcs()
   
-ggplot(for_cor_fig, aes(x = Lag, y = cor)) +
+ggplot(for_cor_fig, aes(x = lag, y = correlation)) +
   geom_line(alpha = 0.5, linewidth = 0.5) +
   ylab("Correlation") +
   xlab("Lag") +
@@ -232,7 +248,7 @@ The training data is further split into resamples as shown in the second layer o
 ::: {.callout-important}
 ## **WTF** #6
 
-Creating a test set does not prevent model overfitting.  We have seen many examples where a practitioner will use cross-validation to select optimal tuning parameters, then assess the performance on the test set.  This process is then repeated until acceptable test set performance is found.  The test set is no longer an independent set for assessing model performance.
+Creating a test set does not prevent model overfitting when used improperly.  We have seen many examples where a practitioner will use cross-validation to select optimal tuning parameters, then assess the performance on the test set.  This process is then repeated until acceptable test set performance is found.  The test set is no longer an independent set for assessing model performance.
 :::
 
 ```{r}
@@ -386,8 +402,27 @@ processed_data %>%
 @fig-lagged-spectra-across-sets displays the correlation across the first 1000 wavenumbers for the original data as well as each of the selected Savitzky-Golay transformations. The effect of differentiation and window size on the correlation across the transformed intensities is clear.  When comparing first-order differentiation to second-order differentiation, second-order differentiation more rapidly reduces correlation among close wavenumbers up to about the nearest 100 wavenumbers.  Increasing the smoothing window also helps smooth the correlation profiles but does not further reduce correlation. We will examine the impact of each of these different smoothing parameter selections on the model performance in the following sections.
 
 ```{r}
+#| label: lagged-spectra-across-sets
+#| include: false
+#| cache: false
+cor_over_preproc <- 
+  processed_data %>%
+  filter(sample_id == 1) %>% 
+  pivot_longer(cols = c(starts_with("x")), names_to = "wavelength", values_to = "value") %>% 
+  select(differentiation_order, polynomial_order, window_size, value) %>% 
+  nest(data = value, .by = c(-value)) %>% 
+  mutate(
+    corrs = map(data, acf_calcs),
+    Pre = make_preproc_code(differentiation_order, polynomial_order, window_size),
+    Pre = factor(Pre, levels = preproc)
+    ) %>% 
+  select(-data) %>% 
+  unnest(cols = corrs)
+```
+
+```{r}
 #| label: fig-lagged-spectra-across-sets
-#| out-width: "60%"
+#| out-width: "70%"
 #| fig-align: center
 #| fig-height: 5
 #| fig-width: 5
@@ -396,109 +431,24 @@ processed_data %>%
 #| cache: true
 #| fig-cap: "The impact of the Savitzky-Golay procedure on the correlation between lagged wavenumbers."
 
-sample1_sg_1_2_15 <-
-  processed_data %>%
-  dplyr::filter(sample_id == 1 & differentiation_order == 1 & polynomial_order == 2 & window_size == 15) %>%
-  pivot_longer(cols= -c(concentration, sample_id, differentiation_order, polynomial_order, window_size), names_to="wavelength", values_to="value") %>%
-  dplyr::select(value)
-  
-lagged_sample1_sg_1_2_15 <-
-  tibble(data.frame(shift(sample1_sg_1_2_15$value, n=1:1000), fill=NA, type="lag"))
-
-cor_lagged_sample1_sg_1_2_15 <-
-  cor(lagged_sample1_sg_1_2_15[,1:1000], use="pairwise.complete.obs")
-
-for_cor_fig_1_2_15 <-
-  tibble(cor = cor_lagged_sample1_sg_1_2_15[,1],
-         Lag = 1:nrow(cor_lagged_sample1_sg_1_2_15)) %>%
-  mutate(SG = "1, 2, 15")
-  
-
-sample1_sg_2_2_15 <-
-  processed_data %>%
-  dplyr::filter(sample_id == 1 & differentiation_order == 2 & polynomial_order == 2 & window_size == 15) %>%
-  pivot_longer(cols= -c(concentration, sample_id, differentiation_order, polynomial_order, window_size), names_to="wavelength", values_to="value") %>%
-  dplyr::select(value)
-  
-lagged_sample1_sg_2_2_15 <-
-  tibble(data.frame(shift(sample1_sg_2_2_15$value, n=1:1000), fill=NA, type="lag"))
-
-cor_lagged_sample1_sg_2_2_15 <-
-  cor(lagged_sample1_sg_2_2_15[,1:1000], use="pairwise.complete.obs")
-
-for_cor_fig_2_2_15 <-
-  tibble(cor = cor_lagged_sample1_sg_2_2_15[,1],
-         Lag = 1:nrow(cor_lagged_sample1_sg_2_2_15)) %>%
-  mutate(SG = "2, 2, 15")
-
-###
-sample1_sg_1_2_49 <-
-  processed_data %>%
-  dplyr::filter(sample_id == 1 & differentiation_order == 1 & polynomial_order == 2 & window_size == 49) %>%
-  pivot_longer(cols= -c(concentration, sample_id, differentiation_order, polynomial_order, window_size), names_to="wavelength", values_to="value") %>%
-  dplyr::select(value)
-  
-lagged_sample1_sg_1_2_49 <-
-  tibble(data.frame(shift(sample1_sg_1_2_49$value, n=1:1000), fill=NA, type="lag"))
-
-cor_lagged_sample1_sg_1_2_49 <-
-  cor(lagged_sample1_sg_1_2_49[,1:1000], use="pairwise.complete.obs")
-
-for_cor_fig_1_2_49 <-
-  tibble(cor = cor_lagged_sample1_sg_1_2_49[,1],
-         Lag = 1:nrow(cor_lagged_sample1_sg_1_2_49)) %>%
-  mutate(SG = "1, 2, 49")
-  
-
-sample1_sg_2_2_49 <-
-  processed_data %>%
-  dplyr::filter(sample_id == 1 & differentiation_order == 2 & polynomial_order == 2 & window_size == 49) %>%
-  pivot_longer(cols= -c(concentration, sample_id, differentiation_order, polynomial_order, window_size), names_to="wavelength", values_to="value") %>%
-  dplyr::select(value)
-  
-lagged_sample1_sg_2_2_49 <-
-  tibble(data.frame(shift(sample1_sg_2_2_49$value, n=1:1000), fill=NA, type="lag"))
-
-cor_lagged_sample1_sg_2_2_49 <-
-  cor(lagged_sample1_sg_2_2_49[,1:1000], use="pairwise.complete.obs")
-
-for_cor_fig_2_2_49 <-
-  tibble(cor = cor_lagged_sample1_sg_2_2_49[,1],
-         Lag = 1:nrow(cor_lagged_sample1_sg_2_2_49)) %>%
-  mutate(SG = "2, 2, 49")
-
-
-for_cor_fig_orig <-
-  for_cor_fig %>%
-  mutate(SG = "None")
-
-for_cor_fig_x_2_15 <-
-  bind_rows(for_cor_fig_orig, for_cor_fig_1_2_15, for_cor_fig_2_2_15) %>%
-  mutate(SG = factor(SG, levels=c("None", "1, 2, 15", "2, 2, 15")))
-
-p1 <- 
-  ggplot(for_cor_fig_x_2_15, aes(x=Lag, y=cor, group=SG, color=SG)) +
-  geom_line(alpha=1, linewidth=1) +
+cor_over_preproc %>% 
+  mutate(`window size` = format(window_size), 
+         `differentiation order` = format(differentiation_order)) %>% 
+  ggplot(
+    aes(
+      x = lag,
+      y = correlation,
+      group = `differentiation order`,
+      color = `differentiation order`
+    )
+  ) +
+  geom_line(linewidth = 1, alpha = 3 / 4) +
+  facet_wrap(~ `window size`, ncol = 1, labeller = "label_both") +
   scale_color_brewer(palette = "Dark2") +
   ylab("Correlation") +
   xlab("Lag") +
-  ylim(-1,1) +
-  theme(legend.title=element_blank())
-
-for_cor_fig_x_2_49 <-
-  bind_rows(for_cor_fig_orig, for_cor_fig_1_2_49, for_cor_fig_2_2_49) %>%
-  mutate(SG = factor(SG, levels=c("None", "1, 2, 49", "2, 2, 49")))
-
-p2 <-
-  ggplot(for_cor_fig_x_2_49, aes(x=Lag, y=cor, group=SG, color=SG)) +
-  geom_line(alpha=1, linewidth=1) +
-  scale_color_brewer(palette = "Dark2") +
-  ylab("Correlation") +
-  xlab("Lag") +
-  ylim(-1,1) +
-  theme(legend.title=element_blank())
-
-grid.arrange(p1, p2, nrow=2)
+  ylim(-1, 1) +
+  theme(legend.position = "top")
 ```
 
 ```{r}
@@ -635,9 +585,6 @@ An alternate tool called Bayesian optimization [@gramacy2020surrogates] was used
 ```{r}
 #| label: compute-best
 #| include: false
-
-models <- c( "Partial Least Squares", "Random Forest", "Cubist", "Support Vector Machine")
-preproc <- c("No Pre-Processing", "(1, 2, 15)", "(2, 2, 15)", "(1, 2, 49)", "(2, 2, 49)")
 
 best_pls <- 
   all_pls_metrics %>% 
