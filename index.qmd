@@ -1,5 +1,5 @@
 ---
-title: "What They forgot to Tell You about Machine Learning with an Application to Pharmaceutical Manufacturing"
+title: "What They Forgot to Tell You About Machine Learning with an Application to Pharmaceutical Manufacturing"
 author: 
   - name: Kjell Johnson
     orchid: 0000-0003-4260-9634
