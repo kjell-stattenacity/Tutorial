@@ -1,5 +1,8 @@
 project:
-  title: "wtf-ml"
-
+  title: "What They forgot to Tell You about Machine Learning with an Application to Pharmaceutical Manufacturing"
+  output-dir: docs
+  preview:
+    port: 4200
+    
 editor: source
 
