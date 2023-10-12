@@ -113,6 +113,19 @@ if (interactive()) {
     coord_obs_pred()
 }
   
+get_tune_res <- function(pattern) {
+  objs <- ls(envir = rlang::global_env(), pattern = pattern)
+  res <- rlang::inject(bind_rows(!!!rlang::syms(objs)))
+  res$file <- objs
+  res$pp_ind <- gsub(pattern, "", res$file)
+  res$pp_ind <- as.numeric(res$pp_ind) + 1
+  res$Pre <- preproc[res$pp_ind]
+  res$pp_ind <- NULL
+  res
+}
+
+all_svm_final <- get_tune_res("svm_final_")
+all_cb_final <- get_tune_res("cb_final_")
 
 # ------------------------------------------------------------------------------
 # Collate PCA results

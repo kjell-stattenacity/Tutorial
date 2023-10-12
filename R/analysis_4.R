@@ -150,6 +150,8 @@ cb_tune_4 <-
             grid = cb_grid,
             control = grid_ctrl)
 
+cb_final_4 <- select_best(cb_tune_4, metric = "rmse")
+
 cb_metrics_4 <- 
   collect_metrics(cb_tune_4) %>% 
   cbind(preproc_4) %>% 
@@ -195,6 +197,8 @@ svm_tune_4 <-
              initial = svm_init_4,
              control = bayes_ctrl)
 
+svm_final_4 <- select_best(svm_tune_4, metric = "rmse")
+
 svm_metrics_4 <- 
   collect_metrics(svm_tune_4) %>% 
   cbind(preproc_4) %>% 
@@ -236,7 +240,7 @@ pca_var_4 <-
 # ------------------------------------------------------------------------------
 # Collate results for this pre-processing configuration
 
-res_4 <- ls(pattern = "(_metrics_4)|(_pred_4)")
+res_4 <- ls(pattern = "(_metrics_4)|(_pred_4)|(_final_4)")
 save(list = res_4, file = "RData/preproc_results_4.RData", compress = TRUE)
 
 res_pca_4 <- ls(pattern = "^pca_")
