@@ -162,6 +162,8 @@ cb_tune_1 <-
             grid = cb_grid,
             control = grid_ctrl)
 
+cb_final_1 <- select_best(cb_tune_1, metric = "rmse")
+
 cb_metrics_1 <- 
   collect_metrics(cb_tune_1) %>% 
   cbind(preproc_1) %>% 
@@ -210,6 +212,8 @@ svm_tune_1 <-
              iter = 15,
              initial = svm_init_1,
              control = bayes_ctrl)
+
+svm_final_1 <- select_best(svm_tune_1, metric = "rmse")
 
 svm_metrics_1 <- 
   collect_metrics(svm_tune_1) %>% 
@@ -264,7 +268,7 @@ final_fit <- last_fit(final_wflow, split = split_1)
 # ------------------------------------------------------------------------------
 # Collate results for this pre-processing configuration
 
-res_1 <- ls(pattern = "(_metrics_1)|(_pred_1)")
+res_1 <- ls(pattern = "(_metrics_1)|(_pred_1)|(_final_1)")
 save(list = res_1, file = "RData/preproc_results_1.RData", compress = TRUE)
 
 res_pca_1 <- ls(pattern = "^pca_")

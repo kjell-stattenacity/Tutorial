@@ -185,11 +185,11 @@ Figure&nbsp;1: Raman spectra profiles for each of the 60 samples.
 </div>
 </div>
 <p>To illustrate this more clearly, let’s examine the relationship among wavenumber measurements for the first sample. To do this we will create lags of the wavelength measurements. To create a lag, the data is shifted by a specified number of rows to create a new variable. For example, to create the first lag, the wavenumber measurements are shifted over by one wavenumber. To create the second lag, the measurements are shifted by two wavenumbers, and so on. <a href="#fig-lagged-spectra" class="quarto-xref">Figure&nbsp;2</a> illustrates the correlation between each subsequent lag for the first 1000 lags. Clearly, close wavenumbers have a high correlation, whereas far wavenumbers have a low correlation. As we will see, understanding this characteristic will be very important when deciding how to pre-process the data prior to modeling and which models to train.</p>
-<div class="cell" data-layout-align="center" data-hash="_cache/fig-lagged-spectra_e2a0aeaeaf750d191620e70fcc8b817b">
+<div class="cell" data-layout-align="center" data-hash="_cache/fig-lagged-spectra_e9162e4ea6e3a87fb4cd944ff1e94410">
 <div class="cell-output-display">
-<div id="fig-lagged-spectra" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="60%" data-fig-align="center">
+<div id="fig-lagged-spectra" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="80%" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-lagged-spectra-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="figures/fig-lagged-spectra-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:60.0%" data-fig-pos="t!">
+<img src="figures/fig-lagged-spectra-1.svg" class="img-fluid quarto-figure-center figure-img" style="width:80.0%" data-fig-pos="t!">
 </div>
 <figcaption class="figure quarto-float-caption quarto-float-fig" id="fig-lagged-spectra-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: The correlation between the original intensities and lagged intensities for the first sample. As wavenumbers depart, the correlation of the intensities decreases.
@@ -444,7 +444,7 @@ Figure&nbsp;10: An example of a space-filling design for two tuning parameters i
 <p>First, let’s examine the PLS and RF model results, each of which optimized a single tuning parameter. <a href="#fig-pls-rf-tune-profiles" class="quarto-xref">Figure&nbsp;11</a> (left) illustrates the relationship between the number of PLS components and the RMSE. There are separate profiles for the different Savitzky-Golay configurations. RMSE generally decreases as the number of components increases regardless of whether or not the spectra were pre-processed. Oddly, the (1, 2, 49) configuration showed degradation in performance after 8 components. The model with the lowest RMSE uses the (1, 2, 15) pre-processor and 12 components. There was a plateau of RMSE after 12 components but choosing fewer components is better than adding unnecessary complexity.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-pls-rf-tune-profiles" class="quarto-figure quarto-figure-center anchored" width="90%" data-fig-pos="t!">
+<div id="fig-pls-rf-tune-profiles" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="90%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-pls-rf-tune-profiles-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-pls-rf-tune-profiles-1.svg" class="img-fluid figure-img" style="width:90.0%" data-fig-pos="t!">
 </div>
@@ -455,10 +455,10 @@ Figure&nbsp;11: The tuning parameter profiles for partial least squares and rand
 </div>
 </div>
 <p><a href="#fig-pls-rf-tune-profiles" class="quarto-xref">Figure&nbsp;11</a> (right) displays the tuning parameter profile for the RF model. Since the different pre-processing methods can produce different numbers of predictors, <span class="math inline">\(m_{try}\)</span> is represented here as a proportion of the number of possible predictors. The value of <span class="math inline">\(m_{try}\)</span> is fairly irrelevant so long as at least 10% of the predictors are randomly sampled at each split. The numerically best random forest model used 1,273 predictors with pre-processing strategy (2, 2, 49), although there is obviously a range of values with the same performance (as well as another pre-processor). The optimal RF model (with RMSE 3.08) performs poorly compared to the optimal PLS model (RMSE = 1.77).</p>
-<p>The Cubist performance profiles are shown in <a href="#fig-cb-profiles" class="quarto-xref">Figure&nbsp;12</a>. The left panel shows that, after a few initial iterations, choice of the ensemble size is not crucial On the right, the main trend in the number of nearest neighbors is that 1-2 neighbors is a poor choice; otherwise there is very little difference in the RMSE profiles. Across pre-processing configurations, the (2, 2, 49) appears to work best with this model with an estimated RMSE of 1.79. Like the random forest results, pre-processing has a larger impact than the model’s tuning parameter(s). TODO list best parameter values</p>
+<p>The Cubist performance profiles are shown in <a href="#fig-cb-profiles" class="quarto-xref">Figure&nbsp;12</a>. The left panel shows that, after a few initial iterations, choice of the ensemble size is not crucial On the right, the main trend in the number of nearest neighbors is that 1-2 neighbors is a poor choice; otherwise there is very little difference in the RMSE profiles. Across pre-processing configurations, the (2, 2, 49) SG configuration, along with 9 committees and 7 neighbors, appears to work best with this model with an estimated RMSE of 1.79. Like the random forest results, pre-processing has a larger impact than the model’s tuning parameter(s).</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-cb-profiles" class="quarto-figure quarto-figure-center anchored" width="90%" data-fig-pos="t!">
+<div id="fig-cb-profiles" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="90%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-cb-profiles-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-cb-profiles-1.svg" class="img-fluid figure-img" style="width:90.0%" data-fig-pos="t!">
 </div>
@@ -469,11 +469,10 @@ Figure&nbsp;12: The tuning parameter profiles for the Cubist model.
 </div>
 </div>
 <p>Recall that SVM models the parameter space; there are sometimes isolated regions of good performance. An initial grid of 10 tuning parameter candidates were selected before proceeding to the iterative calculations. Across all pre-processing methods, the best RMSE from the initial phase was 4.91, a substandard result.</p>
-<p>TODO re-run computations with SVM tuning parameter values.</p>
-<p><a href="#fig-svm-search" class="quarto-xref">Figure&nbsp;13</a> illustrates the process of the iterative Bayesian search. A few of the profiles show a progressive reduction in the RMSE as the algorithm moves through the parameter space defined by the SVM cost and RBF dispersion parameters. Other profiles show some sporadic increases/jumps in RMSE. Bayesian optimization is a global, derivative free technique and may make discordant jumps as it explores the parameter space. In the end, the average reduction in RMSE across the pre-processing settings was 3.1-fold, indicating that the optimization was effective. There are a few pre-processing methods with effectively equal results. The numerically best corresponding to SG settings of (2, 2, 49), a cost value of TODO, and a radial basis function dispersion parameter of TODO. The corresponding RMSE was estimated to be 1.8.</p>
+<p><a href="#fig-svm-search" class="quarto-xref">Figure&nbsp;13</a> illustrates the process of the iterative Bayesian search. A few of the profiles show a progressive reduction in the RMSE as the algorithm moves through the parameter space defined by the SVM cost and RBF dispersion parameters. Other profiles show some sporadic increases/jumps in RMSE. Bayesian optimization is a global, derivative free technique and may make discordant jumps as it explores the parameter space. In the end, the average reduction in RMSE across the pre-processing settings was 3.1-fold, indicating that the optimization was effective. There are a few pre-processing methods with effectively equal results. The numerically best corresponding to SG settings of (2, 2, 49), a cost value of 29.7, and a radial basis function dispersion parameter of 0.0000445 The corresponding RMSE was estimated to be 1.8.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-svm-search" class="quarto-figure quarto-figure-center anchored" width="90%" data-fig-pos="t!">
+<div id="fig-svm-search" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="90%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-svm-search-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-svm-search-1.svg" class="img-fluid figure-img" style="width:90.0%" data-fig-pos="t!">
 </div>
@@ -492,7 +491,7 @@ Figure&nbsp;13: Progress of Bayesian optimization for the SVM parameters. Iterat
 <p>Given the confidence intervals on the best RMSE, multiple pre-processing choices have equal performance.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-all-optimal-models" class="quarto-figure quarto-figure-center anchored" width="75%" data-fig-pos="t!">
+<div id="fig-all-optimal-models" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="75%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-all-optimal-models-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-all-optimal-models-1.svg" class="img-fluid figure-img" style="width:75.0%" data-fig-pos="t!">
 </div>
@@ -519,7 +518,7 @@ Figure&nbsp;14: Cross-validation predictive performance using the optimal tuning
 <p>At this point, the sample is very interesting, and we would consult with the spectroscopist to determine if it is valid. That could be an issue with reagents or instrumentation. For our analysis here, we’ll leave it alone and pick a model/pre-processing combination that appears unaffected.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-obs-pred-cv-comparison" class="quarto-figure quarto-figure-center anchored" width="90%" data-fig-pos="t!">
+<div id="fig-obs-pred-cv-comparison" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="90%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-obs-pred-cv-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-obs-pred-cv-comparison-1.svg" class="img-fluid figure-img" style="width:90.0%" data-fig-pos="t!">
 </div>
@@ -550,7 +549,7 @@ Figure&nbsp;15: Comparison of observed versus hold-out predicted values from cro
 <p>The resulting test set RMSE was 1.93 (compared to the resampling estimate of 1.77). The corresponding test set <span class="math inline">\(R^2\)</span> was 95.8%.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-test" class="quarto-figure quarto-figure-center anchored" width="50%" data-fig-pos="t!">
+<div id="fig-test" class="quarto-figure quarto-figure-center anchored" data-fig-pos="t!" width="50%">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-test-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="figures/fig-test-1.svg" class="img-fluid figure-img" style="width:50.0%" data-fig-pos="t!">
 </div>
