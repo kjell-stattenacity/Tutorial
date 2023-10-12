@@ -14,6 +14,7 @@ author:
       - name: Posit PBC
         url: posit.co   
 bibliography: references.bib
+abstract:  Predictive models (a.k.a. machine learning models) are ubiquitous in all stages of drug research, safety, development, manufacturing, and marketing. The results of these models are used inside and outside of pharmaceutical companies for the purpose of understanding scientific processes and for predicting characteristics of new samples or patients. While there are many resources that describe such models, there are few that explain how to develop a robust model that extracts the highest possible performance from the available data, especially in support of pharmaceutical applications. This tutorial will describe pitfalls and best practices for developing and validating predictive models with a specific application to a monitoring a pharmaceutical manufacturing process.  The pitfalls and best practices will be highlighted to call attention to specific points that are not generally discussed in other resources.
 type: manuscript
 format:
   html:
