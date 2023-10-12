@@ -81,8 +81,6 @@ acf_calcs <- function(x, n = 1000) {
 }
 ```
 
-(This is a preprint of an article submitted to a _Pharmaceutical Statistics_ special nonclinical tutorial edition)
-
 # Introduction
 
 It feels like machine learning (ML) is everywhere. Even after years of popularity, tools such as ChatGPT^[[`https://chat.openai.com`](https://chat.openai.com/)] have increased the visibility of ML and artificial intelligence even further. These tools initially showed their use in image recognition ("Is there a cat in this picture?") and natural language processing (e.g., grammar correction sentence completion). New tools can often take a textual prompt and, with varying levels of success, complete some tasks. Models can be used to rewrite an author's biography in iambic pentameter, write program code, or describe the results of a visualization. 
@@ -169,7 +167,7 @@ To illustrate this more clearly, let's examine the relationship among wavenumber
 ```{r}
 #| label: fig-lagged-spectra
 #| echo: false
-#| cache: true
+#| cache: false
 #| out-width: "80%"
 #| fig-align: center
 #| fig-cap: "The correlation between the original intensities and lagged intensities for the first sample.  As wavenumbers depart, the correlation of the intensities decreases."
@@ -380,7 +378,7 @@ The Savitzky-Golay (SG) procedure [@savitzky1964smoothing;@stevens2022] is desig
 #| fig-width: 5
 #| echo: false
 #| warning: false
-#| cache: true
+#| cache: false
 #| fig-cap: "The impact of the Savitzky-Golay procedure on the Raman spectra."
 
 processed_data %>% 
@@ -429,7 +427,7 @@ cor_over_preproc <-
 #| fig-width: 5
 #| echo: false
 #| warning: false
-#| cache: true
+#| cache: false
 #| fig-cap: "The impact of the Savitzky-Golay procedure on the correlation between lagged wavenumbers."
 
 cor_over_preproc %>% 
@@ -566,7 +564,7 @@ Finally, grid search had been considered inefficient because of the assumption t
 #| fig-width: 4
 #| echo: false
 #| warning: false
-#| cache: true
+#| cache: false
 #| fig-cap: "An example of a space-filling design for two tuning parameters in a Cubist model."
 
 get_design(2, 25) %>% 
