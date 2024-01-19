@@ -29,6 +29,10 @@ format:
     cap-location: bottom
     fig-format: pdf
     pdf-engine: pdflatex
+  latex:
+    cap-location: bottom
+    fig-format: pdf
+    pdf-engine: pdflatex
 knitr:
   opts_chunk:
     cache.path: "_cache/"  
